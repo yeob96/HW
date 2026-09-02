@@ -24,8 +24,8 @@
 | 프론트엔드 | React + Vite |
 | 백엔드 | Spring Boot |
 | DB | MySQL |
-| 지도/좌표 | 카카오맵 JS SDK, 카카오 로컬 API (지오코딩) |
-| 자차 소요시간 | 카카오모빌리티 길찾기(내비) API |
+| 지도/좌표 | 네이버 지도 API (NAVER Cloud Platform Maps), 네이버 Geocoding API |
+| 자차 소요시간 | 네이버 클라우드 플랫폼 Direction 5/15 API |
 | 대중교통 소요시간 | ODsay Lab API |
 | 부동산 데이터 | 국토교통부 실거래가 공개시스템 Open API (data.go.kr) |
 | 시세 참고 | 한국부동산원 R-ONE 통계 (선택) |
@@ -38,11 +38,11 @@
      ↓
 국토교통부 실거래가 API 호출 (지역별/기간별 거래 내역 수집)
      ↓
-지번/도로명 주소 → 카카오 로컬 API로 지오코딩 (좌표 획득)
+지번/도로명 주소 → 네이버 Geocoding API로 지오코딩 (좌표 획득)
      ↓
 PostgreSQL 저장 (좌표 + 가격 + 거래일 + 면적 등)
      ↓
-프론트 요청 시: 직장 좌표 기준 카카오모빌리티/ODsay로 소요시간 계산 → 조건 필터링
+프론트 요청 시: 직장 좌표 기준 네이버 Direction API/ODsay로 소요시간 계산 → 조건 필터링
 ```
 
 ## 5. DB 스키마 초안

@@ -37,7 +37,7 @@ export function MapPlaceholder({ workplace, regions, selectedDongCode, onSelect 
         }}
       />
       <div className="absolute left-2 top-2 rounded-md bg-white/90 px-2 py-1 text-[11px] text-slate-400 shadow-sm">
-        프로토타입 지도 — 실제 카카오맵 미연동
+        프로토타입 지도 — 실제 네이버지도 미연동
       </div>
 
       {regions.map((r) => {
