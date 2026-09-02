@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import { StepIndicator } from '../components/StepIndicator'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
 import { useSearchStore } from '../store/searchStore'
@@ -7,10 +8,37 @@ import type { CommuteMode, DealType } from '../types'
 
 const STEPS = ['직장 위치', '출퇴근 조건', '예산 조건']
 const MINUTE_OPTIONS = [20, 30, 40, 50, 60, 90]
+const ITEM_STAGGER = 0.045
+
+// 부모(스텝 컨테이너)는 자체 트랜스폼 없이 자식들의 enter/center/exit 상태만 전파한다.
+const containerVariants: Variants = {
+  enter: {},
+  center: {},
+  exit: {},
+}
+
+const itemVariants: Variants = {
+  enter: (direction: number) => ({ opacity: 0, x: direction > 0 ? 32 : -32 }),
+  center: { opacity: 1, x: 0 },
+  exit: (direction: number) => ({ opacity: 0, x: direction > 0 ? -32 : 32 }),
+}
+
+function useShuffledRanks(length: number, seedKey: string | number) {
+  return useMemo(() => {
+    const ranks = Array.from({ length }, (_, i) => i)
+    for (let i = ranks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[ranks[i], ranks[j]] = [ranks[j], ranks[i]]
+    }
+    return ranks
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [length, seedKey])
+}
 
 export function InputPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
+  const [direction, setDirection] = useState(1)
 
   const workplace = useSearchStore((s) => s.workplace)
   const setWorkplace = useSearchStore((s) => s.setWorkplace)
@@ -40,13 +68,32 @@ export function InputPage() {
     })
   }
 
+  const goNext = () => {
+    setDirection(1)
+    setStep((s) => Math.min(3, s + 1))
+  }
+
+  const goPrev = () => {
+    setDirection(-1)
+    setStep((s) => Math.max(1, s - 1))
+  }
+
   const goResults = () => {
     runSearch()
     navigate('/results')
   }
 
+  const itemCount =
+    step === 1
+      ? 2 + WORKPLACE_PRESETS.length + 1
+      : step === 2
+        ? 5 + MINUTE_OPTIONS.length
+        : 6 + (budget.dealType === '월세' ? 1 : 0)
+  const ranks = useShuffledRanks(itemCount, step)
+  const delayFor = (i: number) => (ranks[i] ?? i) * ITEM_STAGGER
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-12">
+    <div className="mx-auto flex min-h-screen max-w-2xl flex-col overflow-x-hidden px-6 py-12">
       <header className="mb-10">
         <p className="text-sm font-medium text-emerald-600">출퇴근 기반 부동산 검색</p>
         <h1 className="mt-1 text-2xl font-semibold text-slate-900">살 수 있는 지역을 찾아드려요</h1>
@@ -57,152 +104,253 @@ export function InputPage() {
 
       <StepIndicator steps={STEPS} current={step} />
 
-      <div className="mt-10 flex-1">
-        {step === 1 && (
-          <section>
-            <h2 className="text-lg font-medium text-slate-900">직장 위치를 선택하세요</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              프로토타입에서는 실제 지오코딩 대신 주요 거점 중에서 선택합니다.
-            </p>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {WORKPLACE_PRESETS.map((w) => (
-                <button
-                  key={w.name}
-                  onClick={() => setWorkplace(w)}
-                  className={[
-                    'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
-                    workplace.name === w.name
-                      ? 'border-slate-900 bg-slate-900 text-white'
-                      : 'border-slate-200 text-slate-700 hover:border-slate-300',
-                  ].join(' ')}
-                >
-                  {w.name}
-                </button>
-              ))}
-            </div>
-            <div className="mt-6">
-              <label className="text-sm text-slate-500">또는 주소 직접 입력 (프로토타입: 지도 반영 안 됨)</label>
-              <input
-                value={addressInput}
-                onChange={(e) => setAddressInput(e.target.value)}
-                placeholder="예: 서울시 강남구 테헤란로 123"
-                className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-slate-400"
-              />
-            </div>
-          </section>
-        )}
-
-        {step === 2 && (
-          <section>
-            <h2 className="text-lg font-medium text-slate-900">출퇴근 조건을 입력하세요</h2>
-            <div className="mt-6">
-              <label className="text-sm text-slate-500">이동수단</label>
-              <div className="mt-2 grid grid-cols-2 gap-3">
-                {(['transit', 'car'] as CommuteMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setCommuteMode(mode)}
+      <div className="relative mt-10 flex-1">
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
+          {step === 1 && (
+            <motion.section
+              key="step-1"
+              custom={direction}
+              variants={containerVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+            >
+              <motion.h2
+                custom={direction}
+                variants={itemVariants}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(0) }}
+                className="text-lg font-medium text-slate-900"
+              >
+                직장 위치를 선택하세요
+              </motion.h2>
+              <motion.p
+                custom={direction}
+                variants={itemVariants}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(1) }}
+                className="mt-1 text-sm text-slate-400"
+              >
+                프로토타입에서는 실제 지오코딩 대신 주요 거점 중에서 선택합니다.
+              </motion.p>
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {WORKPLACE_PRESETS.map((w, i) => (
+                  <motion.button
+                    key={w.name}
+                    custom={direction}
+                    variants={itemVariants}
+                    transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(2 + i) }}
+                    onClick={() => setWorkplace(w)}
                     className={[
                       'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
-                      commuteMode === mode
+                      workplace.name === w.name
                         ? 'border-slate-900 bg-slate-900 text-white'
                         : 'border-slate-200 text-slate-700 hover:border-slate-300',
                     ].join(' ')}
                   >
-                    {mode === 'transit' ? '🚇 대중교통' : '🚗 자차'}
-                  </button>
+                    {w.name}
+                  </motion.button>
                 ))}
               </div>
-            </div>
-            <div className="mt-6">
-              <label className="text-sm text-slate-500">최대 소요시간</label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {MINUTE_OPTIONS.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setMaxMinutes(m)}
-                    className={[
-                      'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
-                      maxMinutes === m
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-200 text-slate-700 hover:border-slate-300',
-                    ].join(' ')}
-                  >
-                    {m}분
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+              <motion.div
+                custom={direction}
+                variants={itemVariants}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(2 + WORKPLACE_PRESETS.length) }}
+                className="mt-6"
+              >
+                <label className="text-sm text-slate-500">또는 주소 직접 입력 (프로토타입: 지도 반영 안 됨)</label>
+                <input
+                  value={addressInput}
+                  onChange={(e) => setAddressInput(e.target.value)}
+                  placeholder="예: 서울시 강남구 테헤란로 123"
+                  className="mt-2 w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-slate-400"
+                />
+              </motion.div>
+            </motion.section>
+          )}
 
-        {step === 3 && (
-          <section>
-            <h2 className="text-lg font-medium text-slate-900">예산 조건을 입력하세요</h2>
-            <div className="mt-6">
-              <label className="text-sm text-slate-500">거래유형</label>
-              <div className="mt-2 grid grid-cols-3 gap-3">
-                {(['매매', '전세', '월세'] as DealType[]).map((dt) => (
-                  <button
-                    key={dt}
-                    onClick={() => handleDealType(dt)}
-                    className={[
-                      'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
-                      budget.dealType === dt
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-200 text-slate-700 hover:border-slate-300',
-                    ].join(' ')}
-                  >
-                    {dt}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-slate-500">
-                  {budget.dealType === '월세' ? '최대 보증금' : '최대 예산'}
-                </label>
-                <span className="text-sm font-medium text-slate-900">
-                  {(budget.maxPrice / 10000).toFixed(1)}억
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={dealTypeRanges[budget.dealType].max}
-                step={dealTypeRanges[budget.dealType].step}
-                value={budget.maxPrice}
-                onChange={(e) => setBudget({ ...budget, maxPrice: Number(e.target.value) })}
-                className="mt-3 w-full accent-slate-900"
-              />
-            </div>
-
-            {budget.dealType === '월세' && (
+          {step === 2 && (
+            <motion.section
+              key="step-2"
+              custom={direction}
+              variants={containerVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+            >
+              <motion.h2
+                custom={direction}
+                variants={itemVariants}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(0) }}
+                className="text-lg font-medium text-slate-900"
+              >
+                출퇴근 조건을 입력하세요
+              </motion.h2>
               <div className="mt-6">
+                <motion.label
+                  custom={direction}
+                  variants={itemVariants}
+                  transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(1) }}
+                  className="block text-sm text-slate-500"
+                >
+                  이동수단
+                </motion.label>
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  {(['transit', 'car'] as CommuteMode[]).map((mode, i) => (
+                    <motion.button
+                      key={mode}
+                      custom={direction}
+                      variants={itemVariants}
+                      transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(2 + i) }}
+                      onClick={() => setCommuteMode(mode)}
+                      className={[
+                        'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
+                        commuteMode === mode
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-200 text-slate-700 hover:border-slate-300',
+                      ].join(' ')}
+                    >
+                      {mode === 'transit' ? '🚇 대중교통' : '🚗 자차'}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-6">
+                <motion.label
+                  custom={direction}
+                  variants={itemVariants}
+                  transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(4) }}
+                  className="block text-sm text-slate-500"
+                >
+                  최대 소요시간
+                </motion.label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {MINUTE_OPTIONS.map((m, i) => (
+                    <motion.button
+                      key={m}
+                      custom={direction}
+                      variants={itemVariants}
+                      transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(5 + i) }}
+                      onClick={() => setMaxMinutes(m)}
+                      className={[
+                        'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                        maxMinutes === m
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-200 text-slate-700 hover:border-slate-300',
+                      ].join(' ')}
+                    >
+                      {m}분
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            </motion.section>
+          )}
+
+          {step === 3 && (
+            <motion.section
+              key="step-3"
+              custom={direction}
+              variants={containerVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+            >
+              <motion.h2
+                custom={direction}
+                variants={itemVariants}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(0) }}
+                className="text-lg font-medium text-slate-900"
+              >
+                예산 조건을 입력하세요
+              </motion.h2>
+              <div className="mt-6">
+                <motion.label
+                  custom={direction}
+                  variants={itemVariants}
+                  transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(1) }}
+                  className="block text-sm text-slate-500"
+                >
+                  거래유형
+                </motion.label>
+                <div className="mt-2 grid grid-cols-3 gap-3">
+                  {(['매매', '전세', '월세'] as DealType[]).map((dt, i) => (
+                    <motion.button
+                      key={dt}
+                      custom={direction}
+                      variants={itemVariants}
+                      transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(2 + i) }}
+                      onClick={() => handleDealType(dt)}
+                      className={[
+                        'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
+                        budget.dealType === dt
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-200 text-slate-700 hover:border-slate-300',
+                      ].join(' ')}
+                    >
+                      {dt}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              <motion.div
+                custom={direction}
+                variants={itemVariants}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(5) }}
+                className="mt-6"
+              >
                 <div className="flex items-center justify-between">
-                  <label className="text-sm text-slate-500">최대 월세</label>
-                  <span className="text-sm font-medium text-slate-900">{budget.maxMonthlyRent ?? 100}만원</span>
+                  <label className="text-sm text-slate-500">
+                    {budget.dealType === '월세' ? '최대 보증금' : '최대 예산'}
+                  </label>
+                  <span className="text-sm font-medium text-slate-900">
+                    {(budget.maxPrice / 10000).toFixed(1)}억
+                  </span>
                 </div>
                 <input
                   type="range"
                   min={0}
-                  max={300}
-                  step={10}
-                  value={budget.maxMonthlyRent ?? 100}
-                  onChange={(e) => setBudget({ ...budget, maxMonthlyRent: Number(e.target.value) })}
+                  max={dealTypeRanges[budget.dealType].max}
+                  step={dealTypeRanges[budget.dealType].step}
+                  value={budget.maxPrice}
+                  onChange={(e) => setBudget({ ...budget, maxPrice: Number(e.target.value) })}
                   className="mt-3 w-full accent-slate-900"
                 />
-              </div>
-            )}
-          </section>
-        )}
+              </motion.div>
+
+              {budget.dealType === '월세' && (
+                <motion.div
+                  key="monthly-rent"
+                  custom={direction}
+                  variants={itemVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(6) }}
+                  className="mt-6"
+                >
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-slate-500">최대 월세</label>
+                    <span className="text-sm font-medium text-slate-900">{budget.maxMonthlyRent ?? 100}만원</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={300}
+                    step={10}
+                    value={budget.maxMonthlyRent ?? 100}
+                    onChange={(e) => setBudget({ ...budget, maxMonthlyRent: Number(e.target.value) })}
+                    className="mt-3 w-full accent-slate-900"
+                  />
+                </motion.div>
+              )}
+            </motion.section>
+          )}
+        </AnimatePresence>
       </div>
 
       <footer className="mt-10 flex items-center justify-between border-t border-slate-100 pt-6">
         <button
-          onClick={() => setStep((s) => Math.max(1, s - 1))}
+          onClick={goPrev}
           disabled={step === 1}
           className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-0"
         >
@@ -210,7 +358,7 @@ export function InputPage() {
         </button>
         {step < 3 ? (
           <button
-            onClick={() => setStep((s) => Math.min(3, s + 1))}
+            onClick={goNext}
             className="rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
           >
             다음

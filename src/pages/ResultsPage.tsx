@@ -1,11 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ConditionModal } from '../components/ConditionModal'
 import { MapPlaceholder } from '../components/MapPlaceholder'
 import { RegionCard } from '../components/RegionCard'
 import { useSearchStore } from '../store/searchStore'
 
 export function ResultsPage() {
   const navigate = useNavigate()
+  const [conditionModalOpen, setConditionModalOpen] = useState(false)
   const workplace = useSearchStore((s) => s.workplace)
   const commuteMode = useSearchStore((s) => s.commuteMode)
   const maxMinutes = useSearchStore((s) => s.maxMinutes)
@@ -31,7 +33,7 @@ export function ResultsPage() {
             </h1>
           </div>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => setConditionModalOpen(true)}
             className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300"
           >
             조건 변경
@@ -64,6 +66,8 @@ export function ResultsPage() {
           )}
         </div>
       </main>
+
+      <ConditionModal open={conditionModalOpen} onClose={() => setConditionModalOpen(false)} />
     </div>
   )
 }

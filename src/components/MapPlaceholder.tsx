@@ -33,7 +33,7 @@ export function MapPlaceholder({ workplace, regions, selectedDongCode, onSelect 
   }, [workplace, regions])
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-xl border border-slate-200">
+    <div className="relative z-0 h-full w-full overflow-hidden rounded-xl border border-slate-200">
       <MapContainer bounds={bounds} scrollWheelZoom={false} className="h-full w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
