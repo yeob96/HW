@@ -6,9 +6,11 @@ interface RegionCardProps {
   dealType: DealType
   selected?: boolean
   onClick?: () => void
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
-export function RegionCard({ region, dealType, selected, onClick }: RegionCardProps) {
+export function RegionCard({ region, dealType, selected, onClick, onMouseEnter, onMouseLeave }: RegionCardProps) {
   const priceLabel =
     dealType === '매매'
       ? formatManwon(region.avgPrice)
@@ -19,9 +21,13 @@ export function RegionCard({ region, dealType, selected, onClick }: RegionCardPr
   return (
     <button
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={[
-        'w-full rounded-lg border p-4 text-left transition-colors',
-        selected ? 'border-slate-900 bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-300',
+        'w-full cursor-pointer rounded-lg border p-4 text-left transition-all',
+        selected
+          ? 'border-slate-900 bg-slate-50'
+          : 'border-slate-200 bg-white hover:border-emerald-400 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.12)]',
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-2">

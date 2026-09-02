@@ -8,6 +8,7 @@ import { useSearchStore } from '../store/searchStore'
 export function ResultsPage() {
   const navigate = useNavigate()
   const [conditionModalOpen, setConditionModalOpen] = useState(false)
+  const [hoveredDongCode, setHoveredDongCode] = useState<string | undefined>(undefined)
   const workplace = useSearchStore((s) => s.workplace)
   const commuteMode = useSearchStore((s) => s.commuteMode)
   const maxMinutes = useSearchStore((s) => s.maxMinutes)
@@ -43,7 +44,12 @@ export function ResultsPage() {
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-6 lg:flex-row">
         <div className="h-80 lg:h-auto lg:w-3/5">
-          <MapPlaceholder workplace={workplace} regions={results} onSelect={(dc) => navigate(`/results/${dc}`)} />
+          <MapPlaceholder
+            workplace={workplace}
+            regions={results}
+            hoveredDongCode={hoveredDongCode}
+            onSelect={(dc) => navigate(`/results/${dc}`)}
+          />
         </div>
 
         <div className="flex-1">
@@ -60,6 +66,8 @@ export function ResultsPage() {
                   region={r}
                   dealType={budget.dealType}
                   onClick={() => navigate(`/results/${r.dongCode}`)}
+                  onMouseEnter={() => setHoveredDongCode(r.dongCode)}
+                  onMouseLeave={() => setHoveredDongCode(undefined)}
                 />
               ))}
             </div>

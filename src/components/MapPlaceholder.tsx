@@ -9,6 +9,7 @@ interface MapPlaceholderProps {
   workplace: Workplace
   regions: RegionResult[]
   selectedDongCode?: string
+  hoveredDongCode?: string
   onSelect?: (dongCode: string) => void
 }
 
@@ -19,7 +20,7 @@ const workplaceIcon = L.divIcon({
   iconAnchor: [16, 16],
 })
 
-export function MapPlaceholder({ workplace, regions, selectedDongCode, onSelect }: MapPlaceholderProps) {
+export function MapPlaceholder({ workplace, regions, selectedDongCode, hoveredDongCode, onSelect }: MapPlaceholderProps) {
   const prices = regions.map((r) => (r.avgPrice || r.avgDeposit || r.avgMonthlyRent) as number)
   const minPrice = Math.min(...prices, 0)
   const maxPrice = Math.max(...prices, 1)
@@ -49,13 +50,18 @@ export function MapPlaceholder({ workplace, regions, selectedDongCode, onSelect 
         {regions.map((r) => {
           const value = (r.avgPrice || r.avgDeposit || r.avgMonthlyRent) as number
           const ratio = maxPrice === minPrice ? 0.5 : (value - minPrice) / (maxPrice - minPrice)
-          const diameter = Math.round(26 + ratio * 18)
+          const baseDiameter = Math.round(26 + ratio * 18)
           const selected = r.dongCode === selectedDongCode
+          const hovered = r.dongCode === hoveredDongCode
+          const highlighted = selected || hovered
+          const diameter = highlighted ? baseDiameter + 6 : baseDiameter
           const icon = L.divIcon({
             className: '',
             html: `<div style="display:flex;align-items:center;justify-content:center;width:${diameter}px;height:${diameter}px;border-radius:9999px;border:2px solid ${
-              selected ? '#0f172a' : '#ffffff'
-            };background:${selected ? '#34d399' : '#10b981'};color:#fff;font-size:11px;font-weight:700;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer">${r.transactionCount}</div>`,
+              highlighted ? '#0f172a' : '#ffffff'
+            };background:${highlighted ? '#34d399' : '#10b981'};color:#fff;font-size:11px;font-weight:700;line-height:1;box-shadow:${
+              hovered ? '0 0 0 6px rgba(16,185,129,0.28), 0 2px 6px rgba(0,0,0,.35)' : '0 2px 6px rgba(0,0,0,.35)'
+            };cursor:pointer;transition:box-shadow .15s ease">${r.transactionCount}</div>`,
             iconSize: [diameter, diameter],
             iconAnchor: [diameter / 2, diameter / 2],
           })
