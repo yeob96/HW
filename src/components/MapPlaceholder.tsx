@@ -72,7 +72,12 @@ export function MapPlaceholder({ workplace, regions, selectedDongCode, hoveredDo
               icon={icon}
               eventHandlers={{ click: () => onSelect?.(r.dongCode) }}
             >
-              <Tooltip direction="top" offset={[0, -diameter / 2]}>
+              <Tooltip
+                key={`${r.dongCode}-${hovered}`}
+                direction="top"
+                offset={[0, -diameter / 2]}
+                permanent={hovered}
+              >
                 {r.regionName} · {formatManwon(value)} · {r.commuteMinutes}분 · 최근 거래 {r.transactionCount}건
               </Tooltip>
             </Marker>
