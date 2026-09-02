@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, CircleMarker, Tooltip } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { RegionResult, Workplace } from '../types'
@@ -49,25 +49,27 @@ export function MapPlaceholder({ workplace, regions, selectedDongCode, onSelect 
         {regions.map((r) => {
           const value = (r.avgPrice || r.avgDeposit || r.avgMonthlyRent) as number
           const ratio = maxPrice === minPrice ? 0.5 : (value - minPrice) / (maxPrice - minPrice)
-          const radius = 8 + ratio * 8
+          const diameter = Math.round(26 + ratio * 18)
           const selected = r.dongCode === selectedDongCode
+          const icon = L.divIcon({
+            className: '',
+            html: `<div style="display:flex;align-items:center;justify-content:center;width:${diameter}px;height:${diameter}px;border-radius:9999px;border:2px solid ${
+              selected ? '#0f172a' : '#ffffff'
+            };background:${selected ? '#34d399' : '#10b981'};color:#fff;font-size:11px;font-weight:700;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer">${r.transactionCount}</div>`,
+            iconSize: [diameter, diameter],
+            iconAnchor: [diameter / 2, diameter / 2],
+          })
           return (
-            <CircleMarker
+            <Marker
               key={r.dongCode}
-              center={[r.lat, r.lng]}
-              radius={radius}
-              pathOptions={{
-                color: selected ? '#0f172a' : '#ffffff',
-                weight: 2,
-                fillColor: selected ? '#34d399' : '#10b981',
-                fillOpacity: 1,
-              }}
+              position={[r.lat, r.lng]}
+              icon={icon}
               eventHandlers={{ click: () => onSelect?.(r.dongCode) }}
             >
-              <Tooltip direction="top" offset={[0, -radius]}>
-                {r.regionName} · {formatManwon(value)} · {r.commuteMinutes}분
+              <Tooltip direction="top" offset={[0, -diameter / 2]}>
+                {r.regionName} · {formatManwon(value)} · {r.commuteMinutes}분 · 최근 거래 {r.transactionCount}건
               </Tooltip>
-            </CircleMarker>
+            </Marker>
           )
         })}
       </MapContainer>

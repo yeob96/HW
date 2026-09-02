@@ -53,7 +53,12 @@ export function RegionDetailPage() {
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-5">
         <div className="lg:col-span-2 lg:space-y-6">
           <div className="h-64 lg:h-64">
-            <MapPlaceholder workplace={workplace} regions={results} selectedDongCode={region.dongCode} />
+            <MapPlaceholder
+              workplace={workplace}
+              regions={results}
+              selectedDongCode={region.dongCode}
+              onSelect={(dc) => navigate(`/results/${dc}`)}
+            />
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 lg:mt-0">
