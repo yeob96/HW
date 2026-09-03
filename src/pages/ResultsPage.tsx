@@ -57,7 +57,7 @@ export function ResultsPage() {
         </div>
 
         <div className="flex-1">
-          {dealTypes.length > 1 && (
+          {dealTypes.length > 0 && (
             <div className="mb-3 flex gap-1 border-b border-slate-100">
               {dealTypes.map((dt) => (
                 <button
