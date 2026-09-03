@@ -1,5 +1,6 @@
 export type DealType = '매매' | '전세' | '월세'
 export type CommuteMode = 'transit' | 'car'
+export type PropertyType = '아파트' | '오피스텔' | '빌라' | '단독/다가구'
 
 export interface Workplace {
   name: string
@@ -32,11 +33,17 @@ export interface Transaction {
   aptName: string
   address: string
   dealType: DealType
+  propertyType: PropertyType
   price: number
   deposit: number
   monthlyRent: number
   area: number
   dealDate: string
+}
+
+export interface AreaRange {
+  min: number
+  max: number
 }
 
 export interface BudgetCondition {
@@ -47,6 +54,9 @@ export interface BudgetCondition {
   /** 월세일 때만 사용 (만원) */
   minMonthlyRent?: number
   maxMonthlyRent?: number
+  propertyTypes: PropertyType[]
+  /** 주택 유형별 전용면적(㎡) 범위 */
+  areaRanges: Record<PropertyType, AreaRange>
 }
 
 export interface SearchCondition {

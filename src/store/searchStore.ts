@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import { REGIONS } from '../data/regions'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
-import { ALL_DEAL_TYPES, defaultBudget } from '../data/dealTypeRanges'
+import { ALL_DEAL_TYPES, ALL_PROPERTY_TYPES, DEAL_TYPE_RANGES, MONTHLY_RENT_RANGE, defaultBudget } from '../data/dealTypeRanges'
 import { getRegionSummary } from '../data/mockTransactions'
-import type { BudgetCondition, CommuteMode, DealType, RegionResult, Workplace } from '../types'
+import type { AreaRange, BudgetCondition, CommuteMode, DealType, PropertyType, RegionResult, Workplace } from '../types'
 import { estimateCarMinutes, estimateTransitMinutes, haversineKm } from '../utils/geo'
 
 interface SearchState {
@@ -12,6 +12,8 @@ interface SearchState {
   maxMinutes: number
   dealTypes: DealType[]
   budgets: Record<DealType, BudgetCondition>
+  /** 각 거래유형 박스의 "상세설정"(주택 유형·전용면적) 펼침 여부 */
+  detailsOpen: Record<DealType, boolean>
   activeDealType: DealType
   resultsByType: Partial<Record<DealType, RegionResult[]>>
   hasSearched: boolean
@@ -22,7 +24,10 @@ interface SearchState {
   toggleDealType: (dealType: DealType) => void
   setDealTypes: (dealTypes: DealType[]) => void
   setBudget: (dealType: DealType, patch: Partial<BudgetCondition>) => void
+  togglePropertyType: (dealType: DealType, propertyType: PropertyType) => void
+  setAreaRange: (dealType: DealType, propertyType: PropertyType, patch: Partial<AreaRange>) => void
   setBudgets: (budgets: Record<DealType, BudgetCondition>) => void
+  toggleDetailsOpen: (dealType: DealType) => void
   setActiveDealType: (dealType: DealType) => void
   runSearch: () => void
   getRegionResult: (dongCode: string) => RegionResult | undefined
@@ -38,6 +43,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     전세: defaultBudget('전세'),
     월세: defaultBudget('월세'),
   },
+  detailsOpen: { 매매: false, 전세: false, 월세: false },
   activeDealType: '전세',
   resultsByType: {},
   hasSearched: false,
@@ -63,6 +69,42 @@ export const useSearchStore = create<SearchState>((set, get) => ({
 
   setBudgets: (budgets) => set({ budgets }),
 
+  toggleDetailsOpen: (dealType) =>
+    set((state) => ({ detailsOpen: { ...state.detailsOpen, [dealType]: !state.detailsOpen[dealType] } })),
+
+  togglePropertyType: (dealType, propertyType) =>
+    set((state) => {
+      const budget = state.budgets[dealType]
+      const has = budget.propertyTypes.includes(propertyType)
+      const next = has
+        ? budget.propertyTypes.filter((p) => p !== propertyType)
+        : [...budget.propertyTypes, propertyType]
+      if (next.length === 0) return {}
+      return {
+        budgets: {
+          ...state.budgets,
+          [dealType]: { ...budget, propertyTypes: ALL_PROPERTY_TYPES.filter((p) => next.includes(p)) },
+        },
+      }
+    }),
+
+  setAreaRange: (dealType, propertyType, patch) =>
+    set((state) => {
+      const budget = state.budgets[dealType]
+      return {
+        budgets: {
+          ...state.budgets,
+          [dealType]: {
+            ...budget,
+            areaRanges: {
+              ...budget.areaRanges,
+              [propertyType]: { ...budget.areaRanges[propertyType], ...patch },
+            },
+          },
+        },
+      }
+    }),
+
   setActiveDealType: (dealType) => set({ activeDealType: dealType }),
 
   runSearch: () => {
@@ -78,7 +120,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
         const transitMinutes = estimateTransitMinutes(distanceKm)
         const carMinutes = estimateCarMinutes(distanceKm)
         const commuteMinutes = commuteMode === 'transit' ? transitMinutes : carMinutes
-        const summary = getRegionSummary(region, dealType)
+        const summary = getRegionSummary(region, dealType, budget)
 
         return {
           ...region,
@@ -92,13 +134,20 @@ export const useSearchStore = create<SearchState>((set, get) => ({
         }
       })
         .filter((r) => r.commuteMinutes <= maxMinutes)
+        .filter((r) => r.transactionCount > 0)
         .filter((r) => {
           const priceBasis = dealType === '매매' ? r.avgPrice : r.avgDeposit
-          const withinPrice = priceBasis >= budget.minPrice && priceBasis <= budget.maxPrice
+          // 슬라이더를 최대치까지 올리면 상한 없음("OO 초과")으로 취급
+          const maxPrice = budget.maxPrice >= DEAL_TYPE_RANGES[dealType].max ? Infinity : budget.maxPrice
+          const withinPrice = priceBasis >= budget.minPrice && priceBasis <= maxPrice
           if (dealType === '월세') {
+            const maxMonthlyRent =
+              budget.maxMonthlyRent != null && budget.maxMonthlyRent >= MONTHLY_RENT_RANGE.max
+                ? Infinity
+                : budget.maxMonthlyRent
             const withinMonthlyRent =
               (budget.minMonthlyRent == null || r.avgMonthlyRent >= budget.minMonthlyRent) &&
-              (budget.maxMonthlyRent == null || r.avgMonthlyRent <= budget.maxMonthlyRent)
+              (maxMonthlyRent == null || r.avgMonthlyRent <= maxMonthlyRent)
             return withinPrice && withinMonthlyRent
           }
           return withinPrice

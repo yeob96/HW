@@ -1,4 +1,5 @@
-import type { DealType, RegionBase, Transaction } from '../types'
+import type { BudgetCondition, DealType, RegionBase, Transaction } from '../types'
+import { ALL_PROPERTY_TYPES, AREA_RANGE } from './dealTypeRanges'
 import { createRng } from '../utils/rng'
 
 const APT_POOL = [
@@ -22,6 +23,7 @@ export function generateTransactions(region: RegionBase, dealType: DealType, cou
     const variance = 0.88 + rng() * 0.24
     const area = Math.round((39 + rng() * 75) * 10) / 10
     const aptName = `${APT_POOL[Math.floor(rng() * APT_POOL.length)]} ${1 + Math.floor(rng() * 3)}차`
+    const propertyType = ALL_PROPERTY_TYPES[Math.floor(rng() * ALL_PROPERTY_TYPES.length)]
 
     let price = 0
     let deposit = 0
@@ -42,6 +44,7 @@ export function generateTransactions(region: RegionBase, dealType: DealType, cou
       aptName,
       address: `${region.regionName} ${100 + Math.floor(rng() * 50)}`,
       dealType,
+      propertyType,
       price,
       deposit,
       monthlyRent,
@@ -53,6 +56,18 @@ export function generateTransactions(region: RegionBase, dealType: DealType, cou
   return txs.sort((a, b) => b.dealDate.localeCompare(a.dealDate))
 }
 
+/** 선택된 주택 유형 + 유형별 전용면적 범위로 거래 내역을 필터링 */
+export function filterTransactions(txs: Transaction[], budget: BudgetCondition): Transaction[] {
+  return txs.filter((t) => {
+    if (!budget.propertyTypes.includes(t.propertyType)) return false
+    const area = budget.areaRanges[t.propertyType]
+    if (!area) return true
+    // 슬라이더를 최대치까지 올리면 상한 없음("OO 초과")으로 취급
+    const maxArea = area.max >= AREA_RANGE.max ? Infinity : area.max
+    return t.area >= area.min && t.area <= maxArea
+  })
+}
+
 export interface RegionSummary {
   avgPrice: number
   avgDeposit: number
@@ -60,8 +75,14 @@ export interface RegionSummary {
   transactionCount: number
 }
 
-export function getRegionSummary(region: RegionBase, dealType: DealType): RegionSummary {
-  const txs = generateTransactions(region, dealType, 12)
+const SUMMARY_POOL_SIZE = 48
+const TREND_POOL_SIZE = 96
+
+export function getRegionSummary(region: RegionBase, dealType: DealType, budget: BudgetCondition): RegionSummary {
+  const txs = filterTransactions(generateTransactions(region, dealType, SUMMARY_POOL_SIZE), budget)
+  if (txs.length === 0) {
+    return { avgPrice: 0, avgDeposit: 0, avgMonthlyRent: 0, transactionCount: 0 }
+  }
   const sum = (pick: (t: Transaction) => number) => txs.reduce((s, t) => s + pick(t), 0) / txs.length
   return {
     avgPrice: Math.round(sum((t) => t.price)),
@@ -77,8 +98,8 @@ export interface MonthlyPoint {
 }
 
 /** dealType에 따라 매매가/전세보증금/월세 중 대표값을 월별 평균으로 집계 */
-export function getPriceTrend(region: RegionBase, dealType: DealType): MonthlyPoint[] {
-  const txs = generateTransactions(region, dealType, 24)
+export function getPriceTrend(region: RegionBase, dealType: DealType, budget: BudgetCondition): MonthlyPoint[] {
+  const txs = filterTransactions(generateTransactions(region, dealType, TREND_POOL_SIZE), budget)
   const buckets = new Map<string, number[]>()
 
   for (const t of txs) {

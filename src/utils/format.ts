@@ -7,6 +7,16 @@ export function formatManwon(manwon: number): string {
   return `${rest.toLocaleString()}만원`
 }
 
+/**
+ * min~max가 슬라이더 전체 범위(0~rangeMax)와 같으면 "전체"로 표시.
+ * max만 rangeMax에 도달하면 상한이 없다는 뜻으로 "OO 초과"로 표시.
+ */
+export function formatRangeLabel(min: number, max: number, rangeMax: number, format: (v: number) => string): string {
+  if (min <= 0 && max >= rangeMax) return '전체'
+  const maxLabel = max >= rangeMax ? `${format(max)} 초과` : format(max)
+  return `${format(min)} ~ ${maxLabel}`
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso)
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`

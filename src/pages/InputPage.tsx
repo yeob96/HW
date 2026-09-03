@@ -3,10 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import { RangeSlider } from '../components/RangeSlider'
 import { StepIndicator } from '../components/StepIndicator'
-import { ALL_DEAL_TYPES, DEAL_TYPE_RANGES } from '../data/dealTypeRanges'
+import {
+  ALL_DEAL_TYPES,
+  ALL_PROPERTY_TYPES,
+  AREA_RANGE,
+  DEAL_TYPE_RANGES,
+  MONTHLY_RENT_RANGE,
+  PROPERTY_TYPE_STYLES,
+} from '../data/dealTypeRanges'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
 import { useSearchStore } from '../store/searchStore'
 import type { CommuteMode, DealType } from '../types'
+import { formatRangeLabel } from '../utils/format'
 
 const STEPS = ['직장 위치', '출퇴근 조건', '예산 조건']
 const MINUTE_OPTIONS = [20, 30, 40, 50, 60, 90]
@@ -52,6 +60,10 @@ export function InputPage() {
   const toggleDealType = useSearchStore((s) => s.toggleDealType)
   const budgets = useSearchStore((s) => s.budgets)
   const setBudget = useSearchStore((s) => s.setBudget)
+  const togglePropertyType = useSearchStore((s) => s.togglePropertyType)
+  const setAreaRange = useSearchStore((s) => s.setAreaRange)
+  const detailsOpen = useSearchStore((s) => s.detailsOpen)
+  const toggleDetailsOpen = useSearchStore((s) => s.toggleDetailsOpen)
   const runSearch = useSearchStore((s) => s.runSearch)
 
   const [addressInput, setAddressInput] = useState('')
@@ -300,7 +312,7 @@ export function InputPage() {
                     <div className="mt-3 flex items-center justify-between">
                       <label className="text-sm text-slate-500">{dt === '월세' ? '보증금' : '예산'} 범위</label>
                       <span className="text-sm font-medium text-slate-900">
-                        {(budget.minPrice / 10000).toFixed(1)}억 ~ {(budget.maxPrice / 10000).toFixed(1)}억
+                        {formatRangeLabel(budget.minPrice, budget.maxPrice, DEAL_TYPE_RANGES[dt].max, (v) => `${(v / 10000).toFixed(1)}억`)}
                       </span>
                     </div>
                     <div className="mt-4">
@@ -312,6 +324,7 @@ export function InputPage() {
                         valueMax={budget.maxPrice}
                         onChangeMin={(v) => setBudget(dt, { minPrice: v })}
                         onChangeMax={(v) => setBudget(dt, { maxPrice: v })}
+                        formatTick={(v) => `${(v / 10000).toFixed(1)}억`}
                       />
                     </div>
 
@@ -320,21 +333,96 @@ export function InputPage() {
                         <div className="flex items-center justify-between">
                           <label className="text-sm text-slate-500">월세 범위</label>
                           <span className="text-sm font-medium text-slate-900">
-                            {budget.minMonthlyRent ?? 0}만원 ~ {budget.maxMonthlyRent ?? 100}만원
+                            {formatRangeLabel(
+                              budget.minMonthlyRent ?? 0,
+                              budget.maxMonthlyRent ?? 100,
+                              MONTHLY_RENT_RANGE.max,
+                              (v) => `${v}만원`,
+                            )}
                           </span>
                         </div>
                         <div className="mt-4">
                           <RangeSlider
-                            min={0}
-                            max={300}
-                            step={10}
+                            min={MONTHLY_RENT_RANGE.min}
+                            max={MONTHLY_RENT_RANGE.max}
+                            step={MONTHLY_RENT_RANGE.step}
                             valueMin={budget.minMonthlyRent ?? 0}
                             valueMax={budget.maxMonthlyRent ?? 100}
                             onChangeMin={(v) => setBudget(dt, { minMonthlyRent: v })}
                             onChangeMax={(v) => setBudget(dt, { maxMonthlyRent: v })}
+                            formatTick={(v) => `${Math.round(v)}만`}
                           />
                         </div>
                       </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => toggleDetailsOpen(dt)}
+                      className="mt-4 flex w-full items-center gap-3 text-xs font-medium text-slate-400 hover:text-slate-600"
+                    >
+                      <span className="h-px flex-1 bg-slate-200" />
+                      <span>상세설정 {detailsOpen[dt] ? '▲' : '▼'}</span>
+                      <span className="h-px flex-1 bg-slate-200" />
+                    </button>
+
+                    {detailsOpen[dt] && (
+                      <>
+                        <div className="mt-4">
+                          <label className="text-sm text-slate-500">주택 유형 (중복 선택 가능)</label>
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            {ALL_PROPERTY_TYPES.map((pt) => (
+                              <button
+                                key={pt}
+                                onClick={() => togglePropertyType(dt, pt)}
+                                className={[
+                                  'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                                  budget.propertyTypes.includes(pt)
+                                    ? 'border-slate-900 bg-slate-900 text-white'
+                                    : 'border-slate-200 text-slate-700 hover:border-slate-300',
+                                ].join(' ')}
+                              >
+                                {pt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="text-sm text-slate-500">전용면적</label>
+                          <div className="mt-2 space-y-3">
+                            {ALL_PROPERTY_TYPES.filter((pt) => budget.propertyTypes.includes(pt)).map((pt) => {
+                              const area = budget.areaRanges[pt]
+                              return (
+                                <div key={pt}>
+                                  <div className="flex items-center justify-between">
+                                    <span
+                                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold text-white ${PROPERTY_TYPE_STYLES[pt].bg}`}
+                                    >
+                                      {pt}
+                                    </span>
+                                    <span className="text-sm font-medium text-slate-900">
+                                      {formatRangeLabel(area.min, area.max, AREA_RANGE.max, (v) => `${v}㎡`)}
+                                    </span>
+                                  </div>
+                                  <div className="mt-2">
+                                    <RangeSlider
+                                      min={AREA_RANGE.min}
+                                      max={AREA_RANGE.max}
+                                      step={AREA_RANGE.step}
+                                      valueMin={area.min}
+                                      valueMax={area.max}
+                                      onChangeMin={(v) => setAreaRange(dt, pt, { min: v })}
+                                      onChangeMax={(v) => setAreaRange(dt, pt, { max: v })}
+                                      formatTick={(v) => `${Math.round(v)}㎡`}
+                                    />
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </>
                     )}
                   </motion.div>
                 )

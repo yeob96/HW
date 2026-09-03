@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { MapPlaceholder } from '../components/MapPlaceholder'
 import { PriceTrendChart } from '../components/PriceTrendChart'
 import { TransactionTable } from '../components/TransactionTable'
-import { generateTransactions, getPriceTrend } from '../data/mockTransactions'
+import { filterTransactions, generateTransactions, getPriceTrend } from '../data/mockTransactions'
 import { useSearchStore } from '../store/searchStore'
 import { formatManwon } from '../utils/format'
 
@@ -13,6 +13,7 @@ export function RegionDetailPage() {
   const workplace = useSearchStore((s) => s.workplace)
   const commuteMode = useSearchStore((s) => s.commuteMode)
   const activeDealType = useSearchStore((s) => s.activeDealType)
+  const budgets = useSearchStore((s) => s.budgets)
   const resultsByType = useSearchStore((s) => s.resultsByType)
   const hasSearched = useSearchStore((s) => s.hasSearched)
   const getRegionResult = useSearchStore((s) => s.getRegionResult)
@@ -24,8 +25,15 @@ export function RegionDetailPage() {
     else if (!region) navigate('/results', { replace: true })
   }, [hasSearched, region, navigate])
 
-  const transactions = useMemo(() => (region ? generateTransactions(region, activeDealType, 12) : []), [region, activeDealType])
-  const trend = useMemo(() => (region ? getPriceTrend(region, activeDealType) : []), [region, activeDealType])
+  const budget = budgets[activeDealType]
+  const transactions = useMemo(
+    () => (region ? filterTransactions(generateTransactions(region, activeDealType, 40), budget).slice(0, 12) : []),
+    [region, activeDealType, budget],
+  )
+  const trend = useMemo(
+    () => (region ? getPriceTrend(region, activeDealType, budget) : []),
+    [region, activeDealType, budget],
+  )
 
   if (!region) return null
 

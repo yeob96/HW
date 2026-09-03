@@ -13,6 +13,7 @@ export function TransactionTable({ transactions, dealType }: TransactionTablePro
         <thead className="bg-slate-50 text-left text-xs text-slate-500">
           <tr>
             <th className="px-4 py-2 font-medium">단지</th>
+            <th className="px-4 py-2 font-medium">유형</th>
             <th className="px-4 py-2 font-medium">면적</th>
             <th className="px-4 py-2 font-medium">거래일</th>
             <th className="px-4 py-2 font-medium text-right">
@@ -27,6 +28,7 @@ export function TransactionTable({ transactions, dealType }: TransactionTablePro
                 <div className="font-medium text-slate-900">{t.aptName}</div>
                 <div className="text-xs text-slate-400">{t.address}</div>
               </td>
+              <td className="px-4 py-2.5 text-slate-500">{t.propertyType}</td>
               <td className="px-4 py-2.5 text-slate-500">{t.area}㎡</td>
               <td className="px-4 py-2.5 text-slate-500">{formatDate(t.dealDate)}</td>
               <td className="px-4 py-2.5 text-right font-medium text-slate-900">
