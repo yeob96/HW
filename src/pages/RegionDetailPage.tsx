@@ -50,7 +50,7 @@ export function RegionDetailPage() {
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <button
             onClick={() => navigate('/results')}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:border-slate-300"
+            className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:border-slate-300"
           >
             ← 목록
           </button>

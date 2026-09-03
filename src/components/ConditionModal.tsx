@@ -167,7 +167,7 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
           <h2 className="text-lg font-semibold text-slate-900">조건 변경</h2>
           <button
             onClick={onClose}
-            className="rounded-lg px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="cursor-pointer rounded-lg px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             aria-label="닫기"
           >
             ✕
@@ -183,9 +183,9 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                 key={w.name}
                 onClick={() => setLocalWorkplace(w)}
                 className={[
-                  'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                  'cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                   workplace.name === w.name
-                    ? 'border-slate-900 bg-slate-900 text-white'
+                    ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                     : 'border-slate-200 text-slate-700 hover:border-slate-300',
                 ].join(' ')}
               >
@@ -209,9 +209,9 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                 key={mode}
                 onClick={() => setLocalCommuteMode(mode)}
                 className={[
-                  'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                  'cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                   commuteMode === mode
-                    ? 'border-slate-900 bg-slate-900 text-white'
+                    ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                     : 'border-slate-200 text-slate-700 hover:border-slate-300',
                 ].join(' ')}
               >
@@ -225,9 +225,9 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                 key={m}
                 onClick={() => setLocalMaxMinutes(m)}
                 className={[
-                  'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                  'cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
                   maxMinutes === m
-                    ? 'border-slate-900 bg-slate-900 text-white'
+                    ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                     : 'border-slate-200 text-slate-700 hover:border-slate-300',
                 ].join(' ')}
               >
@@ -245,9 +245,9 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                 key={dt}
                 onClick={() => toggleDealType(dt)}
                 className={[
-                  'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                  'cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
                   dealTypes.includes(dt)
-                    ? 'border-slate-900 bg-slate-900 text-white'
+                    ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                     : 'border-slate-200 text-slate-700 hover:border-slate-300',
                 ].join(' ')}
               >
@@ -324,7 +324,7 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                 <button
                   type="button"
                   onClick={() => toggleDetailsOpen(dt)}
-                  className="mt-4 flex w-full items-center gap-3 text-xs font-medium text-slate-400 hover:text-slate-600"
+                  className="mt-4 flex w-full cursor-pointer items-center gap-3 text-xs font-medium text-slate-400 hover:text-slate-600"
                 >
                   <span className="h-px flex-1 bg-slate-200" />
                   <span>상세설정 {detailsOpen[dt] ? '▲' : '▼'}</span>
@@ -341,9 +341,9 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                             key={pt}
                             onClick={() => togglePropertyType(dt, pt)}
                             className={[
-                              'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                              'cursor-pointer rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
                               budget.propertyTypes.includes(pt)
-                                ? 'border-slate-900 bg-slate-900 text-white'
+                                ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                                 : 'border-slate-200 text-slate-700 hover:border-slate-300',
                             ].join(' ')}
                           >
@@ -398,13 +398,13 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 px-6 py-4">
           <button
             onClick={onClose}
-            className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 hover:border-slate-300 hover:bg-slate-50"
+            className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 hover:border-slate-300 hover:bg-slate-50"
           >
             취소
           </button>
           <button
             onClick={apply}
-            className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
+            className="cursor-pointer rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
           >
             적용
           </button>

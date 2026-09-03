@@ -1,3 +1,4 @@
+import { PROPERTY_TYPE_STYLES } from '../data/dealTypeRanges'
 import type { DealType, Transaction } from '../types'
 import { formatDate, formatManwon } from '../utils/format'
 
@@ -28,7 +29,12 @@ export function TransactionTable({ transactions, dealType }: TransactionTablePro
                 <div className="font-medium text-slate-900">{t.aptName}</div>
                 <div className="text-xs text-slate-400">{t.address}</div>
               </td>
-              <td className="px-4 py-2.5 text-slate-500">{t.propertyType}</td>
+              <td className="px-4 py-2.5 text-slate-500">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
+                  {t.propertyType}
+                </span>
+              </td>
               <td className="px-4 py-2.5 text-slate-500">{t.area}㎡</td>
               <td className="px-4 py-2.5 text-slate-500">{formatDate(t.dealDate)}</td>
               <td className="px-4 py-2.5 text-right font-medium text-slate-900">

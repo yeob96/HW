@@ -143,9 +143,9 @@ export function InputPage() {
                     transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(2 + i) }}
                     onClick={() => setWorkplace(w)}
                     className={[
-                      'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
+                      'cursor-pointer rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
                       workplace.name === w.name
-                        ? 'border-slate-900 bg-slate-900 text-white'
+                        ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                         : 'border-slate-200 text-slate-700 hover:border-slate-300',
                     ].join(' ')}
                   >
@@ -205,9 +205,9 @@ export function InputPage() {
                       transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(2 + i) }}
                       onClick={() => setCommuteMode(mode)}
                       className={[
-                        'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
+                        'cursor-pointer rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
                         commuteMode === mode
-                          ? 'border-slate-900 bg-slate-900 text-white'
+                          ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                           : 'border-slate-200 text-slate-700 hover:border-slate-300',
                       ].join(' ')}
                     >
@@ -234,9 +234,9 @@ export function InputPage() {
                       transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(5 + i) }}
                       onClick={() => setMaxMinutes(m)}
                       className={[
-                        'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                        'cursor-pointer rounded-full border px-4 py-2 text-sm font-medium transition-colors',
                         maxMinutes === m
-                          ? 'border-slate-900 bg-slate-900 text-white'
+                          ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                           : 'border-slate-200 text-slate-700 hover:border-slate-300',
                       ].join(' ')}
                     >
@@ -283,9 +283,9 @@ export function InputPage() {
                       transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(2 + i) }}
                       onClick={() => toggleDealType(dt)}
                       className={[
-                        'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
+                        'cursor-pointer rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
                         dealTypes.includes(dt)
-                          ? 'border-slate-900 bg-slate-900 text-white'
+                          ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                           : 'border-slate-200 text-slate-700 hover:border-slate-300',
                       ].join(' ')}
                     >
@@ -359,7 +359,7 @@ export function InputPage() {
                     <button
                       type="button"
                       onClick={() => toggleDetailsOpen(dt)}
-                      className="mt-4 flex w-full items-center gap-3 text-xs font-medium text-slate-400 hover:text-slate-600"
+                      className="mt-4 flex w-full cursor-pointer items-center gap-3 text-xs font-medium text-slate-400 hover:text-slate-600"
                     >
                       <span className="h-px flex-1 bg-slate-200" />
                       <span>상세설정 {detailsOpen[dt] ? '▲' : '▼'}</span>
@@ -376,9 +376,9 @@ export function InputPage() {
                                 key={pt}
                                 onClick={() => togglePropertyType(dt, pt)}
                                 className={[
-                                  'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                                  'cursor-pointer rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
                                   budget.propertyTypes.includes(pt)
-                                    ? 'border-slate-900 bg-slate-900 text-white'
+                                    ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
                                     : 'border-slate-200 text-slate-700 hover:border-slate-300',
                                 ].join(' ')}
                               >
@@ -436,21 +436,21 @@ export function InputPage() {
         <button
           onClick={goPrev}
           disabled={step === 1}
-          className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-0"
+          className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-default disabled:opacity-0"
         >
           이전
         </button>
         {step < 3 ? (
           <button
             onClick={goNext}
-            className="rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+            className="cursor-pointer rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
           >
             다음
           </button>
         ) : (
           <button
             onClick={goResults}
-            className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
+            className="cursor-pointer rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
           >
             결과 보기
           </button>

@@ -39,7 +39,7 @@ export function ResultsPage() {
           </div>
           <button
             onClick={() => setConditionModalOpen(true)}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300"
+            className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-300"
           >
             조건 변경
           </button>
@@ -64,9 +64,9 @@ export function ResultsPage() {
                   key={dt}
                   onClick={() => setActiveDealType(dt)}
                   className={[
-                    '-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+                    '-mb-px cursor-pointer border-b-2 px-3 py-2 text-sm font-medium transition-colors',
                     activeDealType === dt
-                      ? 'border-emerald-600 text-emerald-700'
+                      ? 'border-emerald-600 text-emerald-700 hover:text-emerald-800'
                       : 'border-transparent text-slate-400 hover:text-slate-600',
                   ].join(' ')}
                 >
