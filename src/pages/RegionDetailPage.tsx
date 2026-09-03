@@ -45,8 +45,8 @@ export function RegionDetailPage() {
         : `${formatManwon(region.avgDeposit)} / 월 ${region.avgMonthlyRent.toLocaleString()}만원`
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-slate-100 px-6 py-4">
+    <div className="flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
+      <header className="shrink-0 border-b border-slate-100 px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <button
             onClick={() => navigate('/results')}
@@ -61,8 +61,8 @@ export function RegionDetailPage() {
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-5">
-        <div className="lg:col-span-2 lg:space-y-6">
+      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-5 lg:min-h-0">
+        <div className="lg:col-span-2 lg:space-y-6 lg:min-h-0 lg:overflow-y-auto">
           <div className="h-64 lg:h-64">
             <MapPlaceholder
               workplace={workplace}
@@ -92,16 +92,20 @@ export function RegionDetailPage() {
               </p>
             </div>
           </div>
+
+          <div className="mt-6 lg:mt-6">
+            <h2 className="mb-3 text-sm font-medium text-slate-700">가격 추이 (최근 12개월)</h2>
+            <div className="rounded-lg border border-slate-200 p-4">
+              <PriceTrendChart data={trend} />
+            </div>
+          </div>
         </div>
 
-        <div className="lg:col-span-3">
-          <h2 className="mb-3 text-sm font-medium text-slate-700">가격 추이 (최근 12개월)</h2>
-          <div className="rounded-lg border border-slate-200 p-4">
-            <PriceTrendChart data={trend} />
+        <div className="mt-6 flex flex-col lg:col-span-3 lg:mt-0 lg:min-h-0">
+          <h2 className="mb-3 shrink-0 text-sm font-medium text-slate-700">최근 실거래 내역</h2>
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+            <TransactionTable transactions={transactions} dealType={activeDealType} />
           </div>
-
-          <h2 className="mb-3 mt-6 text-sm font-medium text-slate-700">최근 실거래 내역</h2>
-          <TransactionTable transactions={transactions} dealType={activeDealType} />
         </div>
       </main>
     </div>

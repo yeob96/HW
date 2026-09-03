@@ -215,7 +215,7 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                     : 'border-slate-200 text-slate-700 hover:border-slate-300',
                 ].join(' ')}
               >
-                {mode === 'transit' ? '🚇 대중교통' : '🚗 자차'}
+                {mode === 'transit' ? '대중교통' : '자차'}
               </button>
             ))}
           </div>
