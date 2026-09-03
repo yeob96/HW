@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import { StepIndicator } from '../components/StepIndicator'
+import { ALL_DEAL_TYPES, DEAL_TYPE_RANGES } from '../data/dealTypeRanges'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
 import { useSearchStore } from '../store/searchStore'
 import type { CommuteMode, DealType } from '../types'
@@ -46,27 +47,15 @@ export function InputPage() {
   const setCommuteMode = useSearchStore((s) => s.setCommuteMode)
   const maxMinutes = useSearchStore((s) => s.maxMinutes)
   const setMaxMinutes = useSearchStore((s) => s.setMaxMinutes)
-  const budget = useSearchStore((s) => s.budget)
+  const dealTypes = useSearchStore((s) => s.dealTypes)
+  const toggleDealType = useSearchStore((s) => s.toggleDealType)
+  const budgets = useSearchStore((s) => s.budgets)
   const setBudget = useSearchStore((s) => s.setBudget)
   const runSearch = useSearchStore((s) => s.runSearch)
 
   const [addressInput, setAddressInput] = useState('')
 
-  const dealTypeRanges: Record<DealType, { max: number; step: number; unit: string }> = {
-    매매: { max: 300000, step: 5000, unit: '만원' },
-    전세: { max: 200000, step: 5000, unit: '만원' },
-    월세: { max: 20000, step: 500, unit: '만원' },
-  }
-
-  const handleDealType = (dealType: DealType) => {
-    const range = dealTypeRanges[dealType]
-    setBudget({
-      dealType,
-      minPrice: 0,
-      maxPrice: Math.round(range.max * 0.6),
-      maxMonthlyRent: dealType === '월세' ? 100 : undefined,
-    })
-  }
+  const selectedDealTypes = ALL_DEAL_TYPES.filter((dt) => dealTypes.includes(dt))
 
   const goNext = () => {
     setDirection(1)
@@ -83,12 +72,13 @@ export function InputPage() {
     navigate('/results')
   }
 
+  const dealTypeSectionItems = selectedDealTypes.reduce((sum, dt) => sum + (dt === '월세' ? 2 : 1), 0)
   const itemCount =
     step === 1
       ? 2 + WORKPLACE_PRESETS.length + 1
       : step === 2
         ? 5 + MINUTE_OPTIONS.length
-        : 6 + (budget.dealType === '월세' ? 1 : 0)
+        : 5 + dealTypeSectionItems
   const ranks = useShuffledRanks(itemCount, step)
   const delayFor = (i: number) => (ranks[i] ?? i) * ITEM_STAGGER
 
@@ -269,7 +259,7 @@ export function InputPage() {
                   transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(1) }}
                   className="block text-sm text-slate-500"
                 >
-                  거래유형
+                  거래유형 (중복 선택 가능)
                 </motion.label>
                 <div className="mt-2 grid grid-cols-3 gap-3">
                   {(['매매', '전세', '월세'] as DealType[]).map((dt, i) => (
@@ -278,10 +268,10 @@ export function InputPage() {
                       custom={direction}
                       variants={itemVariants}
                       transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(2 + i) }}
-                      onClick={() => handleDealType(dt)}
+                      onClick={() => toggleDealType(dt)}
                       className={[
                         'rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
-                        budget.dealType === dt
+                        dealTypes.includes(dt)
                           ? 'border-slate-900 bg-slate-900 text-white'
                           : 'border-slate-200 text-slate-700 hover:border-slate-300',
                       ].join(' ')}
@@ -292,57 +282,66 @@ export function InputPage() {
                 </div>
               </div>
 
-              <motion.div
-                custom={direction}
-                variants={itemVariants}
-                transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(5) }}
-                className="mt-6"
-              >
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-slate-500">
-                    {budget.dealType === '월세' ? '최대 보증금' : '최대 예산'}
-                  </label>
-                  <span className="text-sm font-medium text-slate-900">
-                    {(budget.maxPrice / 10000).toFixed(1)}억
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={dealTypeRanges[budget.dealType].max}
-                  step={dealTypeRanges[budget.dealType].step}
-                  value={budget.maxPrice}
-                  onChange={(e) => setBudget({ ...budget, maxPrice: Number(e.target.value) })}
-                  className="mt-3 w-full accent-slate-900"
-                />
-              </motion.div>
+              {selectedDealTypes.map((dt, sectionIdx) => {
+                const budget = budgets[dt]
+                const priorItems = selectedDealTypes
+                  .slice(0, sectionIdx)
+                  .reduce((sum, d) => sum + (d === '월세' ? 2 : 1), 0)
+                const baseIndex = 5 + priorItems
+                return (
+                  <div key={dt}>
+                    <motion.div
+                      custom={direction}
+                      variants={itemVariants}
+                      transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(baseIndex) }}
+                      className="mt-6"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm text-slate-500">
+                          {dt} {dt === '월세' ? '최대 보증금' : '최대 예산'}
+                        </label>
+                        <span className="text-sm font-medium text-slate-900">
+                          {(budget.maxPrice / 10000).toFixed(1)}억
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={DEAL_TYPE_RANGES[dt].max}
+                        step={DEAL_TYPE_RANGES[dt].step}
+                        value={budget.maxPrice}
+                        onChange={(e) => setBudget(dt, { maxPrice: Number(e.target.value) })}
+                        className="mt-3 w-full accent-slate-900"
+                      />
+                    </motion.div>
 
-              {budget.dealType === '월세' && (
-                <motion.div
-                  key="monthly-rent"
-                  custom={direction}
-                  variants={itemVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(6) }}
-                  className="mt-6"
-                >
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm text-slate-500">최대 월세</label>
-                    <span className="text-sm font-medium text-slate-900">{budget.maxMonthlyRent ?? 100}만원</span>
+                    {dt === '월세' && (
+                      <motion.div
+                        custom={direction}
+                        variants={itemVariants}
+                        transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(baseIndex + 1) }}
+                        className="mt-6"
+                      >
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm text-slate-500">최대 월세</label>
+                          <span className="text-sm font-medium text-slate-900">
+                            {budget.maxMonthlyRent ?? 100}만원
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={300}
+                          step={10}
+                          value={budget.maxMonthlyRent ?? 100}
+                          onChange={(e) => setBudget(dt, { maxMonthlyRent: Number(e.target.value) })}
+                          className="mt-3 w-full accent-slate-900"
+                        />
+                      </motion.div>
+                    )}
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={300}
-                    step={10}
-                    value={budget.maxMonthlyRent ?? 100}
-                    onChange={(e) => setBudget({ ...budget, maxMonthlyRent: Number(e.target.value) })}
-                    className="mt-3 w-full accent-slate-900"
-                  />
-                </motion.div>
-              )}
+                )
+              })}
             </motion.section>
           )}
         </AnimatePresence>

@@ -12,8 +12,10 @@ export function ResultsPage() {
   const workplace = useSearchStore((s) => s.workplace)
   const commuteMode = useSearchStore((s) => s.commuteMode)
   const maxMinutes = useSearchStore((s) => s.maxMinutes)
-  const budget = useSearchStore((s) => s.budget)
-  const results = useSearchStore((s) => s.results)
+  const dealTypes = useSearchStore((s) => s.dealTypes)
+  const activeDealType = useSearchStore((s) => s.activeDealType)
+  const setActiveDealType = useSearchStore((s) => s.setActiveDealType)
+  const resultsByType = useSearchStore((s) => s.resultsByType)
   const hasSearched = useSearchStore((s) => s.hasSearched)
 
   useEffect(() => {
@@ -21,6 +23,8 @@ export function ResultsPage() {
   }, [hasSearched, navigate])
 
   if (!hasSearched) return null
+
+  const results = resultsByType[activeDealType] ?? []
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -30,7 +34,7 @@ export function ResultsPage() {
             <p className="text-sm font-medium text-emerald-600">검색 결과</p>
             <h1 className="text-lg font-semibold text-slate-900">
               {workplace.name} 기준 · {commuteMode === 'transit' ? '대중교통' : '자차'} {maxMinutes}분 이내 ·{' '}
-              {budget.dealType}
+              {dealTypes.join(' · ')}
             </h1>
           </div>
           <button
@@ -53,6 +57,25 @@ export function ResultsPage() {
         </div>
 
         <div className="flex-1">
+          {dealTypes.length > 1 && (
+            <div className="mb-3 flex gap-1 border-b border-slate-100">
+              {dealTypes.map((dt) => (
+                <button
+                  key={dt}
+                  onClick={() => setActiveDealType(dt)}
+                  className={[
+                    '-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+                    activeDealType === dt
+                      ? 'border-emerald-600 text-emerald-700'
+                      : 'border-transparent text-slate-400 hover:text-slate-600',
+                  ].join(' ')}
+                >
+                  {dt}
+                  <span className="ml-1.5 text-xs text-slate-400">{(resultsByType[dt] ?? []).length}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <p className="mb-3 text-sm text-slate-500">조건에 맞는 지역 {results.length}곳</p>
           {results.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">
@@ -64,7 +87,7 @@ export function ResultsPage() {
                 <RegionCard
                   key={r.dongCode}
                   region={r}
-                  dealType={budget.dealType}
+                  dealType={activeDealType}
                   onClick={() => navigate(`/results/${r.dongCode}`)}
                   onMouseEnter={() => setHoveredDongCode(r.dongCode)}
                   onMouseLeave={() => setHoveredDongCode(undefined)}

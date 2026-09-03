@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react'
+import { ALL_DEAL_TYPES, DEAL_TYPE_RANGES, defaultBudget } from '../data/dealTypeRanges'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
 import { useSearchStore } from '../store/searchStore'
 import type { BudgetCondition, CommuteMode, DealType, Workplace } from '../types'
 
 const MINUTE_OPTIONS = [20, 30, 40, 50, 60, 90]
-
-const DEAL_TYPE_RANGES: Record<DealType, { max: number; step: number }> = {
-  매매: { max: 300000, step: 5000 },
-  전세: { max: 200000, step: 5000 },
-  월세: { max: 20000, step: 500 },
-}
 
 interface ConditionModalProps {
   open: boolean
@@ -20,18 +15,21 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
   const storeWorkplace = useSearchStore((s) => s.workplace)
   const storeCommuteMode = useSearchStore((s) => s.commuteMode)
   const storeMaxMinutes = useSearchStore((s) => s.maxMinutes)
-  const storeBudget = useSearchStore((s) => s.budget)
+  const storeDealTypes = useSearchStore((s) => s.dealTypes)
+  const storeBudgets = useSearchStore((s) => s.budgets)
   const setWorkplace = useSearchStore((s) => s.setWorkplace)
   const setCommuteMode = useSearchStore((s) => s.setCommuteMode)
   const setMaxMinutes = useSearchStore((s) => s.setMaxMinutes)
-  const setBudget = useSearchStore((s) => s.setBudget)
+  const setDealTypes = useSearchStore((s) => s.setDealTypes)
+  const setBudgets = useSearchStore((s) => s.setBudgets)
   const runSearch = useSearchStore((s) => s.runSearch)
 
   const [workplace, setLocalWorkplace] = useState<Workplace>(storeWorkplace)
   const [addressInput, setAddressInput] = useState('')
   const [commuteMode, setLocalCommuteMode] = useState<CommuteMode>(storeCommuteMode)
   const [maxMinutes, setLocalMaxMinutes] = useState(storeMaxMinutes)
-  const [budget, setLocalBudget] = useState<BudgetCondition>(storeBudget)
+  const [dealTypes, setLocalDealTypes] = useState<DealType[]>(storeDealTypes)
+  const [budgets, setLocalBudgets] = useState<Record<DealType, BudgetCondition>>(storeBudgets)
 
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -42,9 +40,10 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
       setAddressInput('')
       setLocalCommuteMode(storeCommuteMode)
       setLocalMaxMinutes(storeMaxMinutes)
-      setLocalBudget(storeBudget)
+      setLocalDealTypes(storeDealTypes)
+      setLocalBudgets(storeBudgets)
     }
-  }, [open, storeWorkplace, storeCommuteMode, storeMaxMinutes, storeBudget])
+  }, [open, storeWorkplace, storeCommuteMode, storeMaxMinutes, storeDealTypes, storeBudgets])
 
   useEffect(() => {
     if (open) {
@@ -68,21 +67,26 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
 
   if (!mounted) return null
 
-  const handleDealType = (dealType: DealType) => {
-    const range = DEAL_TYPE_RANGES[dealType]
-    setLocalBudget({
-      dealType,
-      minPrice: 0,
-      maxPrice: Math.round(range.max * 0.6),
-      maxMonthlyRent: dealType === '월세' ? 100 : undefined,
+  const toggleDealType = (dealType: DealType) => {
+    setLocalDealTypes((prev) => {
+      const has = prev.includes(dealType)
+      const next = has ? prev.filter((d) => d !== dealType) : [...prev, dealType]
+      if (next.length === 0) return prev
+      return ALL_DEAL_TYPES.filter((d) => next.includes(d))
     })
+    setLocalBudgets((prev) =>
+      prev[dealType] ? prev : { ...prev, [dealType]: defaultBudget(dealType) },
+    )
   }
+
+  const selectedDealTypes = ALL_DEAL_TYPES.filter((dt) => dealTypes.includes(dt))
 
   const apply = () => {
     setWorkplace(workplace)
     setCommuteMode(commuteMode)
     setMaxMinutes(maxMinutes)
-    setBudget(budget)
+    setDealTypes(dealTypes)
+    setBudgets(budgets)
     runSearch()
     onClose()
   }
@@ -98,13 +102,13 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
     >
       <div
         className={[
-          'w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl',
+          'flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl bg-white shadow-xl',
           'transition duration-200 ease-out',
           visible ? 'translate-y-0 scale-100 opacity-100' : '-translate-y-2 scale-95 opacity-0',
         ].join(' ')}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex shrink-0 items-center justify-between px-6 pt-6">
           <h2 className="text-lg font-semibold text-slate-900">조건 변경</h2>
           <button
             onClick={onClose}
@@ -115,6 +119,7 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
           </button>
         </div>
 
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
         <section className="mt-6">
           <h3 className="text-sm font-medium text-slate-900">직장 위치</h3>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -178,15 +183,15 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
         </section>
 
         <section className="mt-6">
-          <h3 className="text-sm font-medium text-slate-900">예산</h3>
+          <h3 className="text-sm font-medium text-slate-900">예산 (중복 선택 가능)</h3>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {(['매매', '전세', '월세'] as DealType[]).map((dt) => (
               <button
                 key={dt}
-                onClick={() => handleDealType(dt)}
+                onClick={() => toggleDealType(dt)}
                 className={[
                   'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-                  budget.dealType === dt
+                  dealTypes.includes(dt)
                     ? 'border-slate-900 bg-slate-900 text-white'
                     : 'border-slate-200 text-slate-700 hover:border-slate-300',
                 ].join(' ')}
@@ -196,42 +201,60 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
             ))}
           </div>
 
-          <div className="mt-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-slate-500">{budget.dealType === '월세' ? '최대 보증금' : '최대 예산'}</label>
-              <span className="text-sm font-medium text-slate-900">{(budget.maxPrice / 10000).toFixed(1)}억</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={DEAL_TYPE_RANGES[budget.dealType].max}
-              step={DEAL_TYPE_RANGES[budget.dealType].step}
-              value={budget.maxPrice}
-              onChange={(e) => setLocalBudget({ ...budget, maxPrice: Number(e.target.value) })}
-              className="mt-2 w-full accent-slate-900"
-            />
-          </div>
+          {selectedDealTypes.map((dt) => {
+            const budget = budgets[dt] ?? defaultBudget(dt)
+            return (
+              <div key={dt} className="mt-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-slate-500">
+                    {dt} {dt === '월세' ? '최대 보증금' : '최대 예산'}
+                  </label>
+                  <span className="text-sm font-medium text-slate-900">{(budget.maxPrice / 10000).toFixed(1)}억</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={DEAL_TYPE_RANGES[dt].max}
+                  step={DEAL_TYPE_RANGES[dt].step}
+                  value={budget.maxPrice}
+                  onChange={(e) =>
+                    setLocalBudgets((prev) => ({
+                      ...prev,
+                      [dt]: { ...budget, maxPrice: Number(e.target.value) },
+                    }))
+                  }
+                  className="mt-2 w-full accent-slate-900"
+                />
 
-          {budget.dealType === '월세' && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-slate-500">최대 월세</label>
-                <span className="text-sm font-medium text-slate-900">{budget.maxMonthlyRent ?? 100}만원</span>
+                {dt === '월세' && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-slate-500">최대 월세</label>
+                      <span className="text-sm font-medium text-slate-900">{budget.maxMonthlyRent ?? 100}만원</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={300}
+                      step={10}
+                      value={budget.maxMonthlyRent ?? 100}
+                      onChange={(e) =>
+                        setLocalBudgets((prev) => ({
+                          ...prev,
+                          [dt]: { ...budget, maxMonthlyRent: Number(e.target.value) },
+                        }))
+                      }
+                      className="mt-2 w-full accent-slate-900"
+                    />
+                  </div>
+                )}
               </div>
-              <input
-                type="range"
-                min={0}
-                max={300}
-                step={10}
-                value={budget.maxMonthlyRent ?? 100}
-                onChange={(e) => setLocalBudget({ ...budget, maxMonthlyRent: Number(e.target.value) })}
-                className="mt-2 w-full accent-slate-900"
-              />
-            </div>
-          )}
+            )
+          })}
         </section>
+        </div>
 
-        <div className="mt-8 flex items-center justify-end gap-2 border-t border-slate-100 pt-6">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 px-6 py-4">
           <button
             onClick={onClose}
             className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-500 hover:border-slate-300 hover:bg-slate-50"
