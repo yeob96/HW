@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { RangeSlider } from './RangeSlider'
 import { ALL_DEAL_TYPES, DEAL_TYPE_RANGES, defaultBudget } from '../data/dealTypeRanges'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
 import { useSearchStore } from '../store/searchStore'
@@ -34,6 +35,9 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
 
+  const sectionRefs = useRef<Partial<Record<DealType, HTMLDivElement | null>>>({})
+  const prevDealTypesRef = useRef<DealType[]>(dealTypes)
+
   useEffect(() => {
     if (open) {
       setLocalWorkplace(storeWorkplace)
@@ -64,6 +68,15 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
+
+  useEffect(() => {
+    const prev = prevDealTypesRef.current
+    const added = dealTypes.find((d) => !prev.includes(d))
+    if (added) {
+      sectionRefs.current[added]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+    prevDealTypesRef.current = dealTypes
+  }, [dealTypes])
 
   if (!mounted) return null
 
@@ -204,48 +217,58 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
           {selectedDealTypes.map((dt) => {
             const budget = budgets[dt] ?? defaultBudget(dt)
             return (
-              <div key={dt} className="mt-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-slate-500">
-                    {dt} {dt === '월세' ? '최대 보증금' : '최대 예산'}
-                  </label>
-                  <span className="text-sm font-medium text-slate-900">{(budget.maxPrice / 10000).toFixed(1)}억</span>
+              <div
+                key={dt}
+                ref={(el) => {
+                  sectionRefs.current[dt] = el
+                }}
+                className="mt-4 rounded-lg border border-slate-200 p-4"
+              >
+                <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                  {dt}
+                </span>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <label className="text-sm text-slate-500">{dt === '월세' ? '보증금' : '예산'} 범위</label>
+                  <span className="text-sm font-medium text-slate-900">
+                    {(budget.minPrice / 10000).toFixed(1)}억 ~ {(budget.maxPrice / 10000).toFixed(1)}억
+                  </span>
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={DEAL_TYPE_RANGES[dt].max}
-                  step={DEAL_TYPE_RANGES[dt].step}
-                  value={budget.maxPrice}
-                  onChange={(e) =>
-                    setLocalBudgets((prev) => ({
-                      ...prev,
-                      [dt]: { ...budget, maxPrice: Number(e.target.value) },
-                    }))
-                  }
-                  className="mt-2 w-full accent-slate-900"
-                />
+                <div className="mt-4">
+                  <RangeSlider
+                    min={0}
+                    max={DEAL_TYPE_RANGES[dt].max}
+                    step={DEAL_TYPE_RANGES[dt].step}
+                    valueMin={budget.minPrice}
+                    valueMax={budget.maxPrice}
+                    onChangeMin={(v) => setLocalBudgets((prev) => ({ ...prev, [dt]: { ...budget, minPrice: v } }))}
+                    onChangeMax={(v) => setLocalBudgets((prev) => ({ ...prev, [dt]: { ...budget, maxPrice: v } }))}
+                  />
+                </div>
 
                 {dt === '월세' && (
                   <div className="mt-4">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm text-slate-500">최대 월세</label>
-                      <span className="text-sm font-medium text-slate-900">{budget.maxMonthlyRent ?? 100}만원</span>
+                      <label className="text-sm text-slate-500">월세 범위</label>
+                      <span className="text-sm font-medium text-slate-900">
+                        {budget.minMonthlyRent ?? 0}만원 ~ {budget.maxMonthlyRent ?? 100}만원
+                      </span>
                     </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={300}
-                      step={10}
-                      value={budget.maxMonthlyRent ?? 100}
-                      onChange={(e) =>
-                        setLocalBudgets((prev) => ({
-                          ...prev,
-                          [dt]: { ...budget, maxMonthlyRent: Number(e.target.value) },
-                        }))
-                      }
-                      className="mt-2 w-full accent-slate-900"
-                    />
+                    <div className="mt-4">
+                      <RangeSlider
+                        min={0}
+                        max={300}
+                        step={10}
+                        valueMin={budget.minMonthlyRent ?? 0}
+                        valueMax={budget.maxMonthlyRent ?? 100}
+                        onChangeMin={(v) =>
+                          setLocalBudgets((prev) => ({ ...prev, [dt]: { ...budget, minMonthlyRent: v } }))
+                        }
+                        onChangeMax={(v) =>
+                          setLocalBudgets((prev) => ({ ...prev, [dt]: { ...budget, maxMonthlyRent: v } }))
+                        }
+                      />
+                    </div>
                   </div>
                 )}
               </div>

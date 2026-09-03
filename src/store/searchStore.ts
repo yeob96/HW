@@ -95,8 +95,11 @@ export const useSearchStore = create<SearchState>((set, get) => ({
         .filter((r) => {
           const priceBasis = dealType === '매매' ? r.avgPrice : r.avgDeposit
           const withinPrice = priceBasis >= budget.minPrice && priceBasis <= budget.maxPrice
-          if (dealType === '월세' && budget.maxMonthlyRent != null) {
-            return withinPrice && r.avgMonthlyRent <= budget.maxMonthlyRent
+          if (dealType === '월세') {
+            const withinMonthlyRent =
+              (budget.minMonthlyRent == null || r.avgMonthlyRent >= budget.minMonthlyRent) &&
+              (budget.maxMonthlyRent == null || r.avgMonthlyRent <= budget.maxMonthlyRent)
+            return withinPrice && withinMonthlyRent
           }
           return withinPrice
         })

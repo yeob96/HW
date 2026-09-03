@@ -14,6 +14,7 @@ export function defaultBudget(dealType: DealType): BudgetCondition {
     dealType,
     minPrice: 0,
     maxPrice: Math.round(range.max * 0.6),
+    minMonthlyRent: dealType === '월세' ? 0 : undefined,
     maxMonthlyRent: dealType === '월세' ? 100 : undefined,
   }
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, type Variants } from 'framer-motion'
+import { RangeSlider } from '../components/RangeSlider'
 import { StepIndicator } from '../components/StepIndicator'
 import { ALL_DEAL_TYPES, DEAL_TYPE_RANGES } from '../data/dealTypeRanges'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
@@ -72,7 +73,7 @@ export function InputPage() {
     navigate('/results')
   }
 
-  const dealTypeSectionItems = selectedDealTypes.reduce((sum, dt) => sum + (dt === '월세' ? 2 : 1), 0)
+  const dealTypeSectionItems = selectedDealTypes.length
   const itemCount =
     step === 1
       ? 2 + WORKPLACE_PRESETS.length + 1
@@ -284,62 +285,58 @@ export function InputPage() {
 
               {selectedDealTypes.map((dt, sectionIdx) => {
                 const budget = budgets[dt]
-                const priorItems = selectedDealTypes
-                  .slice(0, sectionIdx)
-                  .reduce((sum, d) => sum + (d === '월세' ? 2 : 1), 0)
-                const baseIndex = 5 + priorItems
                 return (
-                  <div key={dt}>
-                    <motion.div
-                      custom={direction}
-                      variants={itemVariants}
-                      transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(baseIndex) }}
-                      className="mt-6"
-                    >
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm text-slate-500">
-                          {dt} {dt === '월세' ? '최대 보증금' : '최대 예산'}
-                        </label>
-                        <span className="text-sm font-medium text-slate-900">
-                          {(budget.maxPrice / 10000).toFixed(1)}억
-                        </span>
-                      </div>
-                      <input
-                        type="range"
+                  <motion.div
+                    key={dt}
+                    custom={direction}
+                    variants={itemVariants}
+                    transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(5 + sectionIdx) }}
+                    className="mt-6 rounded-lg border border-slate-200 p-4"
+                  >
+                    <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                      {dt}
+                    </span>
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <label className="text-sm text-slate-500">{dt === '월세' ? '보증금' : '예산'} 범위</label>
+                      <span className="text-sm font-medium text-slate-900">
+                        {(budget.minPrice / 10000).toFixed(1)}억 ~ {(budget.maxPrice / 10000).toFixed(1)}억
+                      </span>
+                    </div>
+                    <div className="mt-4">
+                      <RangeSlider
                         min={0}
                         max={DEAL_TYPE_RANGES[dt].max}
                         step={DEAL_TYPE_RANGES[dt].step}
-                        value={budget.maxPrice}
-                        onChange={(e) => setBudget(dt, { maxPrice: Number(e.target.value) })}
-                        className="mt-3 w-full accent-slate-900"
+                        valueMin={budget.minPrice}
+                        valueMax={budget.maxPrice}
+                        onChangeMin={(v) => setBudget(dt, { minPrice: v })}
+                        onChangeMax={(v) => setBudget(dt, { maxPrice: v })}
                       />
-                    </motion.div>
+                    </div>
 
                     {dt === '월세' && (
-                      <motion.div
-                        custom={direction}
-                        variants={itemVariants}
-                        transition={{ duration: 0.3, ease: 'easeOut', delay: delayFor(baseIndex + 1) }}
-                        className="mt-6"
-                      >
+                      <div className="mt-4">
                         <div className="flex items-center justify-between">
-                          <label className="text-sm text-slate-500">최대 월세</label>
+                          <label className="text-sm text-slate-500">월세 범위</label>
                           <span className="text-sm font-medium text-slate-900">
-                            {budget.maxMonthlyRent ?? 100}만원
+                            {budget.minMonthlyRent ?? 0}만원 ~ {budget.maxMonthlyRent ?? 100}만원
                           </span>
                         </div>
-                        <input
-                          type="range"
-                          min={0}
-                          max={300}
-                          step={10}
-                          value={budget.maxMonthlyRent ?? 100}
-                          onChange={(e) => setBudget(dt, { maxMonthlyRent: Number(e.target.value) })}
-                          className="mt-3 w-full accent-slate-900"
-                        />
-                      </motion.div>
+                        <div className="mt-4">
+                          <RangeSlider
+                            min={0}
+                            max={300}
+                            step={10}
+                            valueMin={budget.minMonthlyRent ?? 0}
+                            valueMax={budget.maxMonthlyRent ?? 100}
+                            onChangeMin={(v) => setBudget(dt, { minMonthlyRent: v })}
+                            onChangeMax={(v) => setBudget(dt, { maxMonthlyRent: v })}
+                          />
+                        </div>
+                      </div>
                     )}
-                  </div>
+                  </motion.div>
                 )
               })}
             </motion.section>

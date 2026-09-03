@@ -45,6 +45,7 @@ export interface BudgetCondition {
   minPrice: number
   maxPrice: number
   /** 월세일 때만 사용 (만원) */
+  minMonthlyRent?: number
   maxMonthlyRent?: number
 }
 
