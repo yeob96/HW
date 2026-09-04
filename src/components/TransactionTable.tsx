@@ -66,17 +66,19 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
       }}
     >
       <td className="px-4 py-2.5">
-        <div className="flex items-start gap-1.5">
-          <div className="mt-0.5 flex shrink-0 flex-col items-center gap-0.5">
-            <span className={`h-2.5 w-2.5 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
-            {liked && <span className="text-[8px] leading-none text-red-500">♥</span>}
-          </div>
-          <div>
-            <div className="font-medium text-slate-900">
-              {t.aptName} ({t.area}㎡)
-            </div>
-            <div className="text-xs text-slate-400">{t.address}</div>
-          </div>
+        <div className="flex items-center gap-1.5 font-medium text-slate-900">
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
+          {t.aptName} ({t.area}㎡)
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+          {liked ? (
+            <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center text-[9px] leading-none text-red-500">
+              ♥
+            </span>
+          ) : (
+            <span className="h-2.5 w-2.5 shrink-0" />
+          )}
+          {t.address}
         </div>
       </td>
       <td className="hidden whitespace-nowrap px-4 py-2.5 text-center text-slate-500 sm:table-cell">
