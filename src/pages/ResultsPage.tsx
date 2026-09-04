@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ConditionModal } from '../components/ConditionModal'
 import { MapPlaceholder } from '../components/MapPlaceholder'
 import { RegionCard } from '../components/RegionCard'
@@ -114,22 +115,30 @@ export function ResultsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {results.map((r, i) => (
-                <RegionCard
-                  key={r.dongCode}
-                  region={r}
-                  dealType={activeDealType}
-                  liked={likedDongCodes.includes(r.dongCode)}
-                  onClick={() => navigate(`/results/${r.dongCode}`)}
-                  onMouseEnter={() => setHoveredDongCode(r.dongCode)}
-                  onMouseLeave={() => setHoveredDongCode(undefined)}
-                  onToggleLike={user ? () => toggleLike(r.dongCode) : undefined}
-                  jiggling={jiggleMode}
-                  jiggleVariant={i % 2 === 0 ? 'a' : 'b'}
-                  onLongPressStart={user ? () => setJiggleMode(true) : undefined}
-                  onRequestExclude={user ? () => setExcludeTarget(r.dongCode) : undefined}
-                />
-              ))}
+              <AnimatePresence initial={false} mode="popLayout">
+                {results.map((r, i) => (
+                  <motion.div
+                    key={r.dongCode}
+                    layout
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ layout: { duration: 0.25, ease: 'easeOut' } }}
+                  >
+                    <RegionCard
+                      region={r}
+                      dealType={activeDealType}
+                      liked={likedDongCodes.includes(r.dongCode)}
+                      onClick={() => navigate(`/results/${r.dongCode}`)}
+                      onMouseEnter={() => setHoveredDongCode(r.dongCode)}
+                      onMouseLeave={() => setHoveredDongCode(undefined)}
+                      onToggleLike={user ? () => toggleLike(r.dongCode) : undefined}
+                      jiggling={jiggleMode}
+                      jiggleVariant={i % 2 === 0 ? 'a' : 'b'}
+                      onLongPressStart={user ? () => setJiggleMode(true) : undefined}
+                      onRequestExclude={user ? () => setExcludeTarget(r.dongCode) : undefined}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>
