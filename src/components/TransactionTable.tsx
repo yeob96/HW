@@ -8,6 +8,8 @@ const MAX_DRAG = 110
 const SWIPE_OUT_DISTANCE = 500
 const REVEAL_THRESHOLD = 24
 
+const GRID_COLS = 'grid-cols-[1fr_9rem] sm:grid-cols-[1fr_7rem_9rem]'
+
 const clampDrag = (v: number) => Math.max(-MAX_DRAG, Math.min(MAX_DRAG, v))
 
 interface TransactionRowProps {
@@ -18,7 +20,10 @@ interface TransactionRowProps {
   onSwipeDislike?: () => void
 }
 
-/** 행을 왼쪽으로 드래그하면 싫어요, 오른쪽으로 드래그하면 좋아요(상단 우선 정렬) 처리된다. */
+/**
+ * 행을 왼쪽으로 드래그하면 싫어요, 오른쪽으로 드래그하면 좋아요(상단 우선 정렬) 처리된다.
+ * 실제 데이터는 흰 배경의 앞면 레이어(그리드)가 통째로 밀리면서, 뒤에 숨어있던 배경(빨강/파랑 + 아이콘)이 드러난다.
+ */
 function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: TransactionRowProps) {
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -26,7 +31,7 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
   const startX = useRef(0)
   const draggable = !!(onSwipeLike || onSwipeDislike)
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLTableRowElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggable) return
     startX.current = e.clientX
     setDragging(true)
@@ -73,27 +78,60 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
         ? 'dislike'
         : null
 
-  const foregroundStyle: React.CSSProperties = {
-    transform: dragX ? `translateX(${dragX}px)` : undefined,
-    transition: dragging ? 'none' : 'transform 0.2s ease-out',
-    position: 'relative',
-    backgroundColor: 'white',
-  }
+  const priceLabel = (() => {
+    if (dealType === '매매') {
+      return (
+        <>
+          <span className="sm:hidden">{formatManwonCompact(t.price)}</span>
+          <span className="hidden sm:inline">{formatManwon(t.price)}</span>
+        </>
+      )
+    }
+    if (dealType === '전세') {
+      return (
+        <>
+          <span className="sm:hidden">{formatManwonCompact(t.deposit)}</span>
+          <span className="hidden sm:inline">{formatManwon(t.deposit)}</span>
+        </>
+      )
+    }
+    return (
+      <>
+        <span className="sm:hidden">
+          {formatManwonCompact(t.deposit)} / {t.monthlyRent.toLocaleString()}만원
+        </span>
+        <span className="hidden sm:inline">
+          {formatManwon(t.deposit)} / {t.monthlyRent.toLocaleString()}만원
+        </span>
+      </>
+    )
+  })()
 
   return (
-    <tr
-      onPointerDown={handlePointerDown}
-      className={`text-slate-700 ${draggable ? 'cursor-grab touch-pan-y select-none active:cursor-grabbing' : ''}`}
-      style={{ backgroundColor: revealSide === 'like' ? '#ef4444' : revealSide === 'dislike' ? '#3b82f6' : undefined }}
-    >
-      <td className="relative overflow-hidden p-0">
-        {revealSide === 'like' && (
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-lg text-white">♥</span>
-        )}
-        {revealSide === 'dislike' && (
-          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-lg text-white">👎</span>
-        )}
-        <div className="px-4 py-2.5" style={foregroundStyle}>
+    <div role="row" className="relative">
+      {revealSide && (
+        <div
+          className="absolute inset-0 flex items-center"
+          style={{ backgroundColor: revealSide === 'like' ? '#ef4444' : '#3b82f6' }}
+        >
+          {revealSide === 'like' ? (
+            <span className="pl-4 text-lg text-white">♥</span>
+          ) : (
+            <span className="ml-auto pr-4 text-lg text-white">👎</span>
+          )}
+        </div>
+      )}
+      <div
+        onPointerDown={handlePointerDown}
+        className={`relative grid ${GRID_COLS} items-center bg-white text-slate-700 ${
+          draggable ? 'cursor-grab touch-pan-y select-none active:cursor-grabbing' : ''
+        }`}
+        style={{
+          transform: dragX ? `translateX(${dragX}px)` : undefined,
+          transition: dragging ? 'none' : 'transform 0.2s ease-out',
+        }}
+      >
+        <div role="cell" className="px-4 py-2.5">
           <div className="flex items-center gap-1.5 font-medium text-slate-900">
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
             {t.aptName} ({t.area}㎡)
@@ -109,39 +147,14 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
             {t.address}
           </div>
         </div>
-      </td>
-      <td className="relative hidden overflow-hidden p-0 sm:table-cell">
-        <div className="px-4 py-2.5 text-center whitespace-nowrap text-slate-500" style={foregroundStyle}>
+        <div role="cell" className="hidden px-4 py-2.5 text-center whitespace-nowrap text-slate-500 sm:block">
           {formatDate(t.dealDate)}
         </div>
-      </td>
-      <td className="relative overflow-hidden p-0">
-        <div className="px-4 py-2.5 text-right font-medium text-slate-900" style={foregroundStyle}>
-          {dealType === '매매' && (
-            <>
-              <span className="sm:hidden">{formatManwonCompact(t.price)}</span>
-              <span className="hidden sm:inline">{formatManwon(t.price)}</span>
-            </>
-          )}
-          {dealType === '전세' && (
-            <>
-              <span className="sm:hidden">{formatManwonCompact(t.deposit)}</span>
-              <span className="hidden sm:inline">{formatManwon(t.deposit)}</span>
-            </>
-          )}
-          {dealType === '월세' && (
-            <>
-              <span className="sm:hidden">
-                {formatManwonCompact(t.deposit)} / {t.monthlyRent.toLocaleString()}만원
-              </span>
-              <span className="hidden sm:inline">
-                {formatManwon(t.deposit)} / {t.monthlyRent.toLocaleString()}만원
-              </span>
-            </>
-          )}
+        <div role="cell" className="px-4 py-2.5 text-right font-medium text-slate-900">
+          {priceLabel}
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   )
 }
 
@@ -156,17 +169,22 @@ interface TransactionTableProps {
 export function TransactionTable({ transactions, dealType, likedIds, onToggleLike, onToggleDislike }: TransactionTableProps) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 lg:max-h-[712px] lg:overflow-y-auto">
-      <table className="w-full text-sm">
-        <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs text-slate-500">
-          <tr>
-            <th className="px-4 py-2 text-left font-medium">단지</th>
-            <th className="hidden whitespace-nowrap px-4 py-2 text-center font-medium sm:table-cell sm:w-28">거래일</th>
-            <th className="px-4 py-2 text-right font-medium">
-              {dealType === '매매' ? '매매가' : dealType === '전세' ? '보증금' : '보증금 / 월세'}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
+      <div role="table" className="w-full text-sm">
+        <div
+          role="row"
+          className={`sticky top-0 z-10 grid ${GRID_COLS} bg-slate-50 text-left text-xs text-slate-500`}
+        >
+          <div role="columnheader" className="px-4 py-2 font-medium">
+            단지
+          </div>
+          <div role="columnheader" className="hidden px-4 py-2 text-center font-medium sm:block">
+            거래일
+          </div>
+          <div role="columnheader" className="px-4 py-2 text-right font-medium">
+            {dealType === '매매' ? '매매가' : dealType === '전세' ? '보증금' : '보증금 / 월세'}
+          </div>
+        </div>
+        <div className="divide-y divide-slate-100">
           {transactions.map((t) => (
             <TransactionRow
               key={t.id}
@@ -177,8 +195,8 @@ export function TransactionTable({ transactions, dealType, likedIds, onToggleLik
               onSwipeDislike={onToggleDislike ? () => onToggleDislike(t.id) : undefined}
             />
           ))}
-        </tbody>
-      </table>
+        </div>
+      </div>
     </div>
   )
 }
