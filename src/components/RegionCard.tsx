@@ -44,10 +44,13 @@ export function RegionCard({
         : `${formatManwon(region.avgDeposit)} / 월 ${region.avgMonthlyRent.toLocaleString()}만원`
 
   const pressTimer = useRef<number | null>(null)
+  /** 방금 꾹 누르기로 흔들기 모드가 켜졌는지 — 그 손을 뗄 때 딸려오는 클릭 한 번은 무시한다 */
+  const justLongPressed = useRef(false)
 
   const startPress = () => {
     if (jiggling || !onLongPressStart) return
     pressTimer.current = window.setTimeout(() => {
+      justLongPressed.current = true
       onLongPressStart()
       pressTimer.current = null
     }, LONG_PRESS_MS)
@@ -61,6 +64,10 @@ export function RegionCard({
   }
 
   const handleClick = () => {
+    if (justLongPressed.current) {
+      justLongPressed.current = false
+      return
+    }
     if (jiggling) {
       onRequestExclude?.()
       return
@@ -72,6 +79,7 @@ export function RegionCard({
     <div
       role="button"
       tabIndex={0}
+      data-jiggle-exempt
       onClick={handleClick}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleClick()}
       onMouseEnter={onMouseEnter}
@@ -86,7 +94,9 @@ export function RegionCard({
         jiggling ? (jiggleVariant === 'a' ? 'jiggle-a' : 'jiggle-b') : '',
         selected
           ? 'border-slate-900 bg-slate-50'
-          : 'border-slate-200 bg-white hover:border-emerald-400 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.12)]',
+          : liked
+            ? 'border-pink-300 bg-white hover:border-pink-400 hover:shadow-[0_0_0_3px_rgba(244,114,182,0.15)]'
+            : 'border-slate-200 bg-white hover:border-emerald-400 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.12)]',
       ].join(' ')}
     >
       {jiggling && (

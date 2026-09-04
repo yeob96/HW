@@ -34,8 +34,18 @@ export function ResultsPage() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setJiggleMode(false)
     }
+    // 카드(및 확인창) 밖 아무 곳이나 누르면 흔들기 모드를 끈다
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('[data-jiggle-exempt]')) return
+      setJiggleMode(false)
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onPointerDown)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointerDown)
+    }
   }, [jiggleMode])
 
   if (!hasSearched) return null
@@ -97,17 +107,7 @@ export function ResultsPage() {
               ))}
             </div>
           )}
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm text-slate-500">조건에 맞는 지역 {results.length}곳</p>
-            {jiggleMode && (
-              <button
-                onClick={() => setJiggleMode(false)}
-                className="cursor-pointer rounded-lg bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-800"
-              >
-                완료
-              </button>
-            )}
-          </div>
+          <p className="mb-3 text-sm text-slate-500">조건에 맞는 지역 {results.length}곳</p>
           {results.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">
               조건에 맞는 지역이 없어요. 소요시간이나 예산 범위를 넓혀보세요.
@@ -142,7 +142,11 @@ export function ResultsPage() {
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 px-4"
           onClick={() => setExcludeTarget(null)}
         >
-          <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div
+            data-jiggle-exempt
+            className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <p className="text-sm text-slate-700">해당 지역을 검색 제외 대상에 추가합니다.</p>
             <div className="mt-4 flex justify-end gap-2">
               <button
