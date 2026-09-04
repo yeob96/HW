@@ -30,7 +30,8 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
   const [dragging, setDragging] = useState(false)
   const [flyingOut, setFlyingOut] = useState(false)
   const startX = useRef(0)
-  const draggable = !!(onSwipeLike || onSwipeDislike)
+  // 이미 좋아요된 매물은 더 이상 드래그(좋아요/싫어요 재처리)할 수 없다
+  const draggable = !liked && !!(onSwipeLike || onSwipeDislike)
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggable) return
