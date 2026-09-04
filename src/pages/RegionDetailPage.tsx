@@ -52,12 +52,15 @@ export function RegionDetailPage() {
     [region, activeDealType, budget],
   )
   const dislikedTransactionIds = user?.dislikedTransactionIds ?? EMPTY_IDS
+  const likedTransactionIds = user?.likedTransactionIds ?? EMPTY_IDS
   const filteredTransactions = useMemo(
     () =>
       transactions
         .filter((t) => activePropertyType === '전체' || t.propertyType === activePropertyType)
-        .filter((t) => !dislikedTransactionIds.includes(t.id)),
-    [transactions, activePropertyType, dislikedTransactionIds],
+        .filter((t) => !dislikedTransactionIds.includes(t.id))
+        .slice()
+        .sort((a, b) => Number(likedTransactionIds.includes(b.id)) - Number(likedTransactionIds.includes(a.id))),
+    [transactions, activePropertyType, dislikedTransactionIds, likedTransactionIds],
   )
 
   if (!region) return null
@@ -222,7 +225,6 @@ export function RegionDetailPage() {
             transactions={filteredTransactions}
             dealType={activeDealType}
             likedIds={user?.likedTransactionIds}
-            dislikedIds={user?.dislikedTransactionIds}
             onToggleLike={user ? toggleLikeTransaction : undefined}
             onToggleDislike={user ? toggleDislikeTransaction : undefined}
           />
