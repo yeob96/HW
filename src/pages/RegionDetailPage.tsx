@@ -25,6 +25,7 @@ export function RegionDetailPage() {
 
   const region = dongCode ? getRegionResult(dongCode) : undefined
   const [activePropertyType, setActivePropertyType] = useState<PropertyType | '전체'>('전체')
+  const [confirmingExclude, setConfirmingExclude] = useState(false)
 
   const user = useCurrentUser()
   const toggleLike = useAuthStore((s) => s.toggleLike)
@@ -81,35 +82,71 @@ export function RegionDetailPage() {
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
             {activeDealType}
           </span>
-          <h1 className="text-lg font-semibold text-slate-900">{region.regionName}</h1>
-          {user && (
-            <div className="ml-auto flex items-center gap-1.5">
+          <h1 className="flex items-center gap-1.5 text-lg font-semibold text-slate-900">
+            {region.regionName}
+            {user && (
               <button
                 onClick={() => toggleLike(region.dongCode)}
-                className={[
-                  'cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                  user.likedDongCodes.includes(region.dongCode)
-                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                    : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600',
-                ].join(' ')}
+                aria-label={user.likedDongCodes.includes(region.dongCode) ? '좋아요 취소' : '좋아요'}
+                className="cursor-pointer text-base leading-none"
               >
-                좋아요
+                {user.likedDongCodes.includes(region.dongCode) ? (
+                  <span className="text-red-500">♥</span>
+                ) : (
+                  <span className="text-slate-300 hover:text-slate-400">♡</span>
+                )}
               </button>
-              <button
-                onClick={() => toggleDislike(region.dongCode)}
-                className={[
-                  'cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                  user.dislikedDongCodes.includes(region.dongCode)
-                    ? 'border-red-400 bg-red-50 text-red-500'
-                    : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600',
-                ].join(' ')}
-              >
-                싫어요
-              </button>
+            )}
+          </h1>
+          {user && (
+            <div className="ml-auto flex items-center gap-1.5">
+              {user.dislikedDongCodes.includes(region.dongCode) ? (
+                <button
+                  onClick={() => toggleDislike(region.dongCode)}
+                  className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700"
+                >
+                  제외 해제
+                </button>
+              ) : (
+                <button
+                  onClick={() => setConfirmingExclude(true)}
+                  className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700"
+                >
+                  검색제외
+                </button>
+              )}
             </div>
           )}
         </div>
       </header>
+
+      {confirmingExclude && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 px-4"
+          onClick={() => setConfirmingExclude(false)}
+        >
+          <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-slate-700">해당 지역을 검색 제외 대상에 추가합니다.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmingExclude(false)}
+                className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:border-slate-300"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  toggleDislike(region.dongCode)
+                  setConfirmingExclude(false)
+                }}
+                className="cursor-pointer rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-5 lg:min-h-0">
         <div className="lg:col-span-2 lg:space-y-6 lg:min-h-0 lg:overflow-y-auto">
