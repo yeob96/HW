@@ -1,17 +1,25 @@
+import { useRef } from 'react'
 import type { DealType, RegionResult } from '../types'
 import { formatManwon } from '../utils/format'
+
+const LONG_PRESS_MS = 600
 
 interface RegionCardProps {
   region: RegionResult
   dealType: DealType
   selected?: boolean
   liked?: boolean
-  disliked?: boolean
   onClick?: () => void
   onMouseEnter?: () => void
   onMouseLeave?: () => void
   onToggleLike?: () => void
-  onToggleDislike?: () => void
+  /** 아이폰 앱 삭제모드처럼 흔들리는 중인지 (결과 목록 전체가 함께 켜진다) */
+  jiggling?: boolean
+  jiggleVariant?: 'a' | 'b'
+  /** 꾹 누르기(길게 클릭/터치)로 흔들기 모드를 켜달라는 요청 */
+  onLongPressStart?: () => void
+  /** 흔들기 모드에서 X 배지나 카드 자체를 눌렀을 때 — 싫어요(제외) 확인을 띄워달라는 요청 */
+  onRequestExclude?: () => void
 }
 
 export function RegionCard({
@@ -19,12 +27,14 @@ export function RegionCard({
   dealType,
   selected,
   liked,
-  disliked,
   onClick,
   onMouseEnter,
   onMouseLeave,
   onToggleLike,
-  onToggleDislike,
+  jiggling,
+  jiggleVariant = 'a',
+  onLongPressStart,
+  onRequestExclude,
 }: RegionCardProps) {
   const priceLabel =
     dealType === '매매'
@@ -33,21 +43,65 @@ export function RegionCard({
         ? formatManwon(region.avgDeposit)
         : `${formatManwon(region.avgDeposit)} / 월 ${region.avgMonthlyRent.toLocaleString()}만원`
 
+  const pressTimer = useRef<number | null>(null)
+
+  const startPress = () => {
+    if (jiggling || !onLongPressStart) return
+    pressTimer.current = window.setTimeout(() => {
+      onLongPressStart()
+      pressTimer.current = null
+    }, LONG_PRESS_MS)
+  }
+
+  const cancelPress = () => {
+    if (pressTimer.current !== null) {
+      clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }
+
+  const handleClick = () => {
+    if (jiggling) {
+      onRequestExclude?.()
+      return
+    }
+    onClick?.()
+  }
+
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClick?.()}
+      onClick={handleClick}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleClick()}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onPointerDown={startPress}
+      onPointerUp={cancelPress}
+      onPointerLeave={cancelPress}
+      onPointerCancel={cancelPress}
+      onContextMenu={(e) => e.preventDefault()}
       className={[
-        'w-full cursor-pointer rounded-lg border p-4 text-left transition-all',
+        'relative w-full cursor-pointer touch-manipulation rounded-lg border p-4 text-left transition-all select-none',
+        jiggling ? (jiggleVariant === 'a' ? 'jiggle-a' : 'jiggle-b') : '',
         selected
           ? 'border-slate-900 bg-slate-50'
           : 'border-slate-200 bg-white hover:border-emerald-400 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.12)]',
       ].join(' ')}
     >
+      {jiggling && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onRequestExclude?.()
+          }}
+          aria-label="검색 결과에서 제외"
+          className="absolute -top-2 -right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow hover:bg-red-600"
+        >
+          ✕
+        </button>
+      )}
+
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-medium text-slate-900">{region.regionName}</h3>
         <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -55,43 +109,23 @@ export function RegionCard({
         </span>
       </div>
       <p className="mt-1 text-sm text-slate-500">평균 {priceLabel}</p>
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-2 flex items-end justify-between">
         <p className="text-xs text-slate-400">최근 거래 {region.transactionCount}건</p>
-        {(onToggleLike || onToggleDislike) && (
-          <div className="flex items-center gap-1">
-            {onToggleLike && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onToggleLike()
-                }}
-                className={[
-                  'cursor-pointer rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
-                  liked
-                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                    : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600',
-                ].join(' ')}
-              >
-                좋아요
-              </button>
+        {onToggleLike && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleLike()
+            }}
+            aria-label={liked ? '좋아요 취소' : '좋아요'}
+            className="cursor-pointer text-lg leading-none"
+          >
+            {liked ? (
+              <span className="text-red-500">♥</span>
+            ) : (
+              <span className="text-slate-300 hover:text-slate-400">♡</span>
             )}
-            {onToggleDislike && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onToggleDislike()
-                }}
-                className={[
-                  'cursor-pointer rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
-                  disliked
-                    ? 'border-red-400 bg-red-50 text-red-500'
-                    : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600',
-                ].join(' ')}
-              >
-                싫어요
-              </button>
-            )}
-          </div>
+          </button>
         )}
       </div>
     </div>

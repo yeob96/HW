@@ -10,6 +10,8 @@ export function ResultsPage() {
   const navigate = useNavigate()
   const [conditionModalOpen, setConditionModalOpen] = useState(false)
   const [hoveredDongCode, setHoveredDongCode] = useState<string | undefined>(undefined)
+  const [jiggleMode, setJiggleMode] = useState(false)
+  const [excludeTarget, setExcludeTarget] = useState<string | null>(null)
   const workplace = useSearchStore((s) => s.workplace)
   const commuteMode = useSearchStore((s) => s.commuteMode)
   const maxMinutes = useSearchStore((s) => s.maxMinutes)
@@ -27,10 +29,23 @@ export function ResultsPage() {
     if (!hasSearched) navigate('/', { replace: true })
   }, [hasSearched, navigate])
 
+  useEffect(() => {
+    if (!jiggleMode) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setJiggleMode(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [jiggleMode])
+
   if (!hasSearched) return null
 
   const dislikedDongCodes = user?.dislikedDongCodes ?? []
-  const results = (resultsByType[activeDealType] ?? []).filter((r) => !dislikedDongCodes.includes(r.dongCode))
+  const likedDongCodes = user?.likedDongCodes ?? []
+  const results = (resultsByType[activeDealType] ?? [])
+    .filter((r) => !dislikedDongCodes.includes(r.dongCode))
+    .slice()
+    .sort((a, b) => Number(likedDongCodes.includes(b.dongCode)) - Number(likedDongCodes.includes(a.dongCode)))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -82,25 +97,37 @@ export function ResultsPage() {
               ))}
             </div>
           )}
-          <p className="mb-3 text-sm text-slate-500">조건에 맞는 지역 {results.length}곳</p>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm text-slate-500">조건에 맞는 지역 {results.length}곳</p>
+            {jiggleMode && (
+              <button
+                onClick={() => setJiggleMode(false)}
+                className="cursor-pointer rounded-lg bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-800"
+              >
+                완료
+              </button>
+            )}
+          </div>
           {results.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">
               조건에 맞는 지역이 없어요. 소요시간이나 예산 범위를 넓혀보세요.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {results.map((r) => (
+              {results.map((r, i) => (
                 <RegionCard
                   key={r.dongCode}
                   region={r}
                   dealType={activeDealType}
-                  liked={user?.likedDongCodes.includes(r.dongCode)}
-                  disliked={user?.dislikedDongCodes.includes(r.dongCode)}
+                  liked={likedDongCodes.includes(r.dongCode)}
                   onClick={() => navigate(`/results/${r.dongCode}`)}
                   onMouseEnter={() => setHoveredDongCode(r.dongCode)}
                   onMouseLeave={() => setHoveredDongCode(undefined)}
                   onToggleLike={user ? () => toggleLike(r.dongCode) : undefined}
-                  onToggleDislike={user ? () => toggleDislike(r.dongCode) : undefined}
+                  jiggling={jiggleMode}
+                  jiggleVariant={i % 2 === 0 ? 'a' : 'b'}
+                  onLongPressStart={user ? () => setJiggleMode(true) : undefined}
+                  onRequestExclude={user ? () => setExcludeTarget(r.dongCode) : undefined}
                 />
               ))}
             </div>
@@ -109,6 +136,34 @@ export function ResultsPage() {
       </main>
 
       <ConditionModal open={conditionModalOpen} onClose={() => setConditionModalOpen(false)} />
+
+      {excludeTarget && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 px-4"
+          onClick={() => setExcludeTarget(null)}
+        >
+          <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-slate-700">해당 지역을 검색 제외 대상에 추가합니다.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setExcludeTarget(null)}
+                className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:border-slate-300"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  toggleDislike(excludeTarget)
+                  setExcludeTarget(null)
+                }}
+                className="cursor-pointer rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

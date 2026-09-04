@@ -10,3 +10,29 @@ body {
   background: #ffffff;
   color: #0f172a;
 }
+
+/* 아이폰 홈 화면 앱 삭제 모드처럼 카드가 흔들리는 효과 (카드마다 위상을 다르게 해서 어긋나 보이게) */
+@keyframes wiggle-a {
+  0%,
+  100% {
+    transform: rotate(-1.4deg);
+  }
+  50% {
+    transform: rotate(1.4deg);
+  }
+}
+@keyframes wiggle-b {
+  0%,
+  100% {
+    transform: rotate(1.4deg);
+  }
+  50% {
+    transform: rotate(-1.4deg);
+  }
+}
+.jiggle-a {
+  animation: wiggle-a 0.22s ease-in-out infinite;
+}
+.jiggle-b {
+  animation: wiggle-b 0.25s ease-in-out infinite;
+}
