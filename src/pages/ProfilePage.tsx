@@ -102,7 +102,6 @@ function LikeDislikeSection({
             <thead className="bg-slate-50 text-left text-xs text-slate-500">
               <tr>
                 <th className="px-4 py-2 font-medium">단지</th>
-                <th className="px-4 py-2 font-medium">지역</th>
                 <th className="px-4 py-2 text-right font-medium">금액</th>
                 <th className="w-12 px-2 py-2" />
               </tr>
@@ -114,9 +113,11 @@ function LikeDislikeSection({
                 return (
                   <tr key={id} className="text-slate-700">
                     <td className="px-4 py-2.5">
-                      {tx.aptName} ({tx.area}㎡)
+                      <div className="font-medium text-slate-900">
+                        {tx.aptName} ({tx.area}㎡)
+                      </div>
+                      <div className="text-xs text-slate-400">{regionName(tx.dongCode)}</div>
                     </td>
-                    <td className="px-4 py-2.5 text-slate-500">{regionName(tx.dongCode)}</td>
                     <td className="px-4 py-2.5 text-right font-medium text-slate-900">
                       {transactionAmountLabel(tx)}
                     </td>
