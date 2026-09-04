@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { PROPERTY_TYPE_STYLES } from '../data/dealTypeRanges'
 import type { DealType, Transaction } from '../types'
 import { formatDate, formatManwon, formatManwonCompact } from '../utils/format'
@@ -110,7 +111,13 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
   })()
 
   return (
-    <div role="row" className="relative">
+    <motion.div
+      role="row"
+      layout
+      exit={{ opacity: 0 }}
+      transition={{ layout: { duration: 0.25, ease: 'easeOut' } }}
+      className="relative"
+    >
       {revealSide && (
         <div
           className="absolute inset-0 flex items-center"
@@ -159,7 +166,7 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -190,16 +197,18 @@ export function TransactionTable({ transactions, dealType, likedIds, onToggleLik
           </div>
         </div>
         <div className="divide-y divide-slate-100">
-          {transactions.map((t) => (
-            <TransactionRow
-              key={t.id}
-              t={t}
-              dealType={dealType}
-              liked={!!likedIds?.includes(t.id)}
-              onSwipeLike={onToggleLike ? () => onToggleLike(t.id) : undefined}
-              onSwipeDislike={onToggleDislike ? () => onToggleDislike(t.id) : undefined}
-            />
-          ))}
+          <AnimatePresence initial={false} mode="popLayout">
+            {transactions.map((t) => (
+              <TransactionRow
+                key={t.id}
+                t={t}
+                dealType={dealType}
+                liked={!!likedIds?.includes(t.id)}
+                onSwipeLike={onToggleLike ? () => onToggleLike(t.id) : undefined}
+                onSwipeDislike={onToggleDislike ? () => onToggleDislike(t.id) : undefined}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     </div>
