@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ConditionModal } from '../components/ConditionModal'
 import { MapPlaceholder } from '../components/MapPlaceholder'
 import { RegionCard } from '../components/RegionCard'
+import { useAuthStore, useCurrentUser } from '../store/authStore'
 import { useSearchStore } from '../store/searchStore'
 
 export function ResultsPage() {
@@ -18,13 +19,18 @@ export function ResultsPage() {
   const resultsByType = useSearchStore((s) => s.resultsByType)
   const hasSearched = useSearchStore((s) => s.hasSearched)
 
+  const user = useCurrentUser()
+  const toggleLike = useAuthStore((s) => s.toggleLike)
+  const toggleDislike = useAuthStore((s) => s.toggleDislike)
+
   useEffect(() => {
     if (!hasSearched) navigate('/', { replace: true })
   }, [hasSearched, navigate])
 
   if (!hasSearched) return null
 
-  const results = resultsByType[activeDealType] ?? []
+  const dislikedDongCodes = user?.dislikedDongCodes ?? []
+  const results = (resultsByType[activeDealType] ?? []).filter((r) => !dislikedDongCodes.includes(r.dongCode))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -88,9 +94,13 @@ export function ResultsPage() {
                   key={r.dongCode}
                   region={r}
                   dealType={activeDealType}
+                  liked={user?.likedDongCodes.includes(r.dongCode)}
+                  disliked={user?.dislikedDongCodes.includes(r.dongCode)}
                   onClick={() => navigate(`/results/${r.dongCode}`)}
                   onMouseEnter={() => setHoveredDongCode(r.dongCode)}
                   onMouseLeave={() => setHoveredDongCode(undefined)}
+                  onToggleLike={user ? () => toggleLike(r.dongCode) : undefined}
+                  onToggleDislike={user ? () => toggleDislike(r.dongCode) : undefined}
                 />
               ))}
             </div>

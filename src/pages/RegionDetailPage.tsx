@@ -5,6 +5,7 @@ import { PriceTrendChart } from '../components/PriceTrendChart'
 import { TransactionTable } from '../components/TransactionTable'
 import { ALL_PROPERTY_TYPES, PROPERTY_TYPE_STYLES } from '../data/dealTypeRanges'
 import { filterTransactions, generateTransactions, getPriceTrend } from '../data/mockTransactions'
+import { useAuthStore, useCurrentUser } from '../store/authStore'
 import { useSearchStore } from '../store/searchStore'
 import type { PropertyType } from '../types'
 import { formatManwon } from '../utils/format'
@@ -22,6 +23,10 @@ export function RegionDetailPage() {
 
   const region = dongCode ? getRegionResult(dongCode) : undefined
   const [activePropertyType, setActivePropertyType] = useState<PropertyType | '전체'>('전체')
+
+  const user = useCurrentUser()
+  const toggleLike = useAuthStore((s) => s.toggleLike)
+  const toggleDislike = useAuthStore((s) => s.toggleDislike)
 
   useEffect(() => {
     if (!hasSearched) navigate('/', { replace: true })
@@ -72,6 +77,32 @@ export function RegionDetailPage() {
             {activeDealType}
           </span>
           <h1 className="text-lg font-semibold text-slate-900">{region.regionName}</h1>
+          {user && (
+            <div className="ml-auto flex items-center gap-1.5">
+              <button
+                onClick={() => toggleLike(region.dongCode)}
+                className={[
+                  'cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                  user.likedDongCodes.includes(region.dongCode)
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600',
+                ].join(' ')}
+              >
+                좋아요
+              </button>
+              <button
+                onClick={() => toggleDislike(region.dongCode)}
+                className={[
+                  'cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                  user.dislikedDongCodes.includes(region.dongCode)
+                    ? 'border-red-400 bg-red-50 text-red-500'
+                    : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600',
+                ].join(' ')}
+              >
+                싫어요
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

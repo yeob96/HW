@@ -5,12 +5,27 @@ interface RegionCardProps {
   region: RegionResult
   dealType: DealType
   selected?: boolean
+  liked?: boolean
+  disliked?: boolean
   onClick?: () => void
   onMouseEnter?: () => void
   onMouseLeave?: () => void
+  onToggleLike?: () => void
+  onToggleDislike?: () => void
 }
 
-export function RegionCard({ region, dealType, selected, onClick, onMouseEnter, onMouseLeave }: RegionCardProps) {
+export function RegionCard({
+  region,
+  dealType,
+  selected,
+  liked,
+  disliked,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+  onToggleLike,
+  onToggleDislike,
+}: RegionCardProps) {
   const priceLabel =
     dealType === '매매'
       ? formatManwon(region.avgPrice)
@@ -19,8 +34,11 @@ export function RegionCard({ region, dealType, selected, onClick, onMouseEnter, 
         : `${formatManwon(region.avgDeposit)} / 월 ${region.avgMonthlyRent.toLocaleString()}만원`
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClick?.()}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={[
@@ -37,7 +55,45 @@ export function RegionCard({ region, dealType, selected, onClick, onMouseEnter, 
         </span>
       </div>
       <p className="mt-1 text-sm text-slate-500">평균 {priceLabel}</p>
-      <p className="mt-2 text-xs text-slate-400">최근 거래 {region.transactionCount}건</p>
-    </button>
+      <div className="mt-2 flex items-center justify-between">
+        <p className="text-xs text-slate-400">최근 거래 {region.transactionCount}건</p>
+        {(onToggleLike || onToggleDislike) && (
+          <div className="flex items-center gap-1">
+            {onToggleLike && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleLike()
+                }}
+                className={[
+                  'cursor-pointer rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
+                  liked
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600',
+                ].join(' ')}
+              >
+                좋아요
+              </button>
+            )}
+            {onToggleDislike && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleDislike()
+                }}
+                className={[
+                  'cursor-pointer rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
+                  disliked
+                    ? 'border-red-400 bg-red-50 text-red-500'
+                    : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600',
+                ].join(' ')}
+              >
+                싫어요
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

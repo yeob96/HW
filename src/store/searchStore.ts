@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { REGIONS } from '../data/regions'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
 import { ALL_DEAL_TYPES, ALL_PROPERTY_TYPES, DEAL_TYPE_RANGES, MONTHLY_RENT_RANGE, defaultBudget } from '../data/dealTypeRanges'
@@ -33,7 +34,9 @@ interface SearchState {
   getRegionResult: (dongCode: string) => RegionResult | undefined
 }
 
-export const useSearchStore = create<SearchState>((set, get) => ({
+export const useSearchStore = create<SearchState>()(
+  persist(
+    (set, get) => ({
   workplace: WORKPLACE_PRESETS[0],
   commuteMode: 'transit',
   maxMinutes: 40,
@@ -168,4 +171,7 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     const { resultsByType, activeDealType } = get()
     return resultsByType[activeDealType]?.find((r) => r.dongCode === dongCode)
   },
-}))
+    }),
+    { name: 'hw-search' },
+  ),
+)

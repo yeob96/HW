@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import { AreaRangeLabel } from '../components/AreaRangeLabel'
@@ -14,6 +14,7 @@ import {
   PROPERTY_TYPE_STYLES,
 } from '../data/dealTypeRanges'
 import { WORKPLACE_PRESETS } from '../data/workplaces'
+import { useCurrentUser } from '../store/authStore'
 import { useSearchStore } from '../store/searchStore'
 import type { CommuteMode, DealType } from '../types'
 import { formatEokTick, formatEokTickBound, formatRangeLabel } from '../utils/format'
@@ -51,6 +52,13 @@ export function InputPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [direction, setDirection] = useState(1)
+
+  const user = useCurrentUser()
+  const hasSearched = useSearchStore((s) => s.hasSearched)
+
+  useEffect(() => {
+    if (user && hasSearched) navigate('/results', { replace: true })
+  }, [user, hasSearched, navigate])
 
   const workplace = useSearchStore((s) => s.workplace)
   const setWorkplace = useSearchStore((s) => s.setWorkplace)
@@ -96,6 +104,8 @@ export function InputPage() {
         : 5 + dealTypeSectionItems
   const ranks = useShuffledRanks(itemCount, step)
   const delayFor = (i: number) => (ranks[i] ?? i) * ITEM_STAGGER
+
+  if (user && hasSearched) return null
 
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col overflow-x-hidden px-6 py-12">
