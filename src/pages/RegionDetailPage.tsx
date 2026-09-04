@@ -103,14 +103,14 @@ export function RegionDetailPage() {
               {user.dislikedDongCodes.includes(region.dongCode) ? (
                 <button
                   onClick={() => toggleDislike(region.dongCode)}
-                  className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700"
+                  className="cursor-pointer rounded-full border border-blue-600 bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700"
                 >
                   제외 해제
                 </button>
               ) : (
                 <button
                   onClick={() => setConfirmingExclude(true)}
-                  className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700"
+                  className="cursor-pointer rounded-full border border-blue-600 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
                 >
                   검색제외
                 </button>
