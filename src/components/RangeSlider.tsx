@@ -36,6 +36,40 @@ export function RangeSlider({
   const percent = (v: number) => (max === min ? 0 : ((v - min) / (max - min)) * 100)
   const nearTop = valueMin > min + (max - min) * 0.9
   const format = formatTick ?? ((v: number) => `${Math.round(v)}`)
+
+  /**
+   * 빈 트랙을 누르면 더 가까운 쪽 손잡이가 그 위치로 즉시 이동하고,
+   * 손을 떼지 않고 드래그하면 같은 손잡이가 포인터를 계속 따라간다.
+   * (손잡이 위를 누른 경우는 네이티브 드래그에 맡기고 무시)
+   */
+  const handleTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return
+    const rect = e.currentTarget.getBoundingClientRect()
+
+    const valueAtClientX = (clientX: number) => {
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+      const raw = min + ratio * (max - min)
+      return Math.min(max, Math.max(min, Math.round(raw / step) * step))
+    }
+
+    const initial = valueAtClientX(e.clientX)
+    const isMin = Math.abs(initial - valueMin) <= Math.abs(initial - valueMax)
+    const applyValue = (clientX: number) => {
+      const v = valueAtClientX(clientX)
+      if (isMin) onChangeMin(Math.min(v, valueMax))
+      else onChangeMax(Math.max(v, valueMin))
+    }
+
+    applyValue(e.clientX)
+
+    const handleMove = (moveEvent: PointerEvent) => applyValue(moveEvent.clientX)
+    const handleUp = () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+    }
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+  }
   const ticks = Array.from({ length: TICK_COUNT }, (_, i) => {
     const ratio = i / (TICK_COUNT - 1)
     return { pos: ratio * 100, value: min + ratio * (max - min) }
@@ -64,7 +98,10 @@ export function RangeSlider({
           />
         ))}
       </div>
-      <div className="relative mt-1 flex h-4 w-full items-center">
+      <div
+        className="relative mt-1 flex h-4 w-full touch-none cursor-pointer items-center"
+        onPointerDown={handleTrackPointerDown}
+      >
         <div className="pointer-events-none absolute h-1.5 w-full rounded-full bg-slate-200" />
         <div
           className="pointer-events-none absolute h-1.5 rounded-full bg-slate-900"
