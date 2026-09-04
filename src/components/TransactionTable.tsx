@@ -4,7 +4,11 @@ import type { DealType, Transaction } from '../types'
 import { formatDate, formatManwon, formatManwonCompact } from '../utils/format'
 
 const SWIPE_THRESHOLD = 80
+const MAX_DRAG = 110
 const SWIPE_OUT_DISTANCE = 500
+const REVEAL_THRESHOLD = 24
+
+const clampDrag = (v: number) => Math.max(-MAX_DRAG, Math.min(MAX_DRAG, v))
 
 interface TransactionRowProps {
   t: Transaction
@@ -18,6 +22,7 @@ interface TransactionRowProps {
 function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: TransactionRowProps) {
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
+  const [flyingOut, setFlyingOut] = useState(false)
   const startX = useRef(0)
   const draggable = !!(onSwipeLike || onSwipeDislike)
 
@@ -29,18 +34,21 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
 
   useEffect(() => {
     if (!dragging) return
-    const handleMove = (e: PointerEvent) => setDragX(e.clientX - startX.current)
+    const handleMove = (e: PointerEvent) => setDragX(clampDrag(e.clientX - startX.current))
     const handleUp = (e: PointerEvent) => {
-      const delta = e.clientX - startX.current
+      const delta = clampDrag(e.clientX - startX.current)
       setDragging(false)
       if (delta <= -SWIPE_THRESHOLD && onSwipeDislike) {
+        setFlyingOut(true)
         setDragX(-SWIPE_OUT_DISTANCE)
         setTimeout(onSwipeDislike, 150)
       } else if (delta >= SWIPE_THRESHOLD && onSwipeLike) {
+        setFlyingOut(true)
         setDragX(SWIPE_OUT_DISTANCE)
         setTimeout(() => {
           onSwipeLike()
           // 좋아요는 목록에서 사라지지 않고 맨 위로 재정렬되므로, 밀려난 위치를 되돌려놓는다
+          setFlyingOut(false)
           setDragX(0)
         }, 150)
       } else {
@@ -55,6 +63,16 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
     }
   }, [dragging, onSwipeDislike, onSwipeLike])
 
+  const revealSide = flyingOut
+    ? dragX > 0
+      ? 'like'
+      : 'dislike'
+    : dragX > REVEAL_THRESHOLD
+      ? 'like'
+      : dragX < -REVEAL_THRESHOLD
+        ? 'dislike'
+        : null
+
   return (
     <tr
       onPointerDown={handlePointerDown}
@@ -62,15 +80,26 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
       style={{
         transform: dragX ? `translateX(${dragX}px)` : undefined,
         transition: dragging ? 'none' : 'transform 0.2s ease-out, background-color 0.2s ease-out',
-        backgroundColor: dragX > 24 ? 'rgba(244,63,94,0.06)' : dragX < -24 ? 'rgba(100,116,139,0.08)' : undefined,
+        backgroundColor: revealSide === 'like' ? '#ef4444' : revealSide === 'dislike' ? '#3b82f6' : undefined,
       }}
     >
-      <td className="px-4 py-2.5">
-        <div className="flex items-center gap-1.5 font-medium text-slate-900">
+      <td className="relative px-4 py-2.5">
+        {revealSide && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-lg text-white">
+            {revealSide === 'like' ? '♥' : '👎'}
+          </div>
+        )}
+        <div
+          className="flex items-center gap-1.5 font-medium text-slate-900"
+          style={{ visibility: revealSide ? 'hidden' : 'visible' }}
+        >
           <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
           {t.aptName} ({t.area}㎡)
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <div
+          className="flex items-center gap-1.5 text-xs text-slate-400"
+          style={{ visibility: revealSide ? 'hidden' : 'visible' }}
+        >
           {liked ? (
             <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center text-[9px] leading-none text-red-500">
               ♥
