@@ -10,6 +10,8 @@ import { useSearchStore } from '../store/searchStore'
 import type { PropertyType } from '../types'
 import { formatManwon } from '../utils/format'
 
+const EMPTY_IDS: string[] = []
+
 export function RegionDetailPage() {
   const { dongCode } = useParams<{ dongCode: string }>()
   const navigate = useNavigate()
@@ -27,6 +29,8 @@ export function RegionDetailPage() {
   const user = useCurrentUser()
   const toggleLike = useAuthStore((s) => s.toggleLike)
   const toggleDislike = useAuthStore((s) => s.toggleDislike)
+  const toggleLikeTransaction = useAuthStore((s) => s.toggleLikeTransaction)
+  const toggleDislikeTransaction = useAuthStore((s) => s.toggleDislikeTransaction)
 
   useEffect(() => {
     if (!hasSearched) navigate('/', { replace: true })
@@ -46,12 +50,13 @@ export function RegionDetailPage() {
     () => (region ? getPriceTrend(region, activeDealType, budget) : []),
     [region, activeDealType, budget],
   )
+  const dislikedTransactionIds = user?.dislikedTransactionIds ?? EMPTY_IDS
   const filteredTransactions = useMemo(
     () =>
-      activePropertyType === '전체'
-        ? transactions
-        : transactions.filter((t) => t.propertyType === activePropertyType),
-    [transactions, activePropertyType],
+      transactions
+        .filter((t) => activePropertyType === '전체' || t.propertyType === activePropertyType)
+        .filter((t) => !dislikedTransactionIds.includes(t.id)),
+    [transactions, activePropertyType, dislikedTransactionIds],
   )
 
   if (!region) return null
@@ -176,7 +181,14 @@ export function RegionDetailPage() {
               </button>
             ))}
           </div>
-          <TransactionTable transactions={filteredTransactions} dealType={activeDealType} />
+          <TransactionTable
+            transactions={filteredTransactions}
+            dealType={activeDealType}
+            likedIds={user?.likedTransactionIds}
+            dislikedIds={user?.dislikedTransactionIds}
+            onToggleLike={user ? toggleLikeTransaction : undefined}
+            onToggleDislike={user ? toggleDislikeTransaction : undefined}
+          />
         </div>
       </main>
     </div>

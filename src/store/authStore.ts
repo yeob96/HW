@@ -10,6 +10,8 @@ export interface MockUser {
   address: string
   likedDongCodes: string[]
   dislikedDongCodes: string[]
+  likedTransactionIds: string[]
+  dislikedTransactionIds: string[]
 }
 
 type Result = { ok: true } | { ok: false; error: string }
@@ -28,6 +30,22 @@ interface AuthState {
   deleteAccount: (currentPassword: string) => Result
   toggleLike: (dongCode: string) => void
   toggleDislike: (dongCode: string) => void
+  toggleLikeTransaction: (transactionId: string) => void
+  toggleDislikeTransaction: (transactionId: string) => void
+}
+
+/** liked/disliked 두 목록 중 하나에서 id를 토글하고, 반대쪽 목록에서는 제거한다. */
+function toggleExclusive(likedList: string[], dislikedList: string[], id: string, addToLiked: boolean) {
+  if (addToLiked) {
+    return {
+      liked: likedList.includes(id) ? likedList.filter((v) => v !== id) : [...likedList, id],
+      disliked: dislikedList.filter((v) => v !== id),
+    }
+  }
+  return {
+    liked: likedList.filter((v) => v !== id),
+    disliked: dislikedList.includes(id) ? dislikedList.filter((v) => v !== id) : [...dislikedList, id],
+  }
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -40,7 +58,17 @@ export const useAuthStore = create<AuthState>()(
         if (get().users.some((u) => u.id === id)) {
           return { ok: false, error: '이미 사용 중인 아이디예요.' }
         }
-        const user: MockUser = { id, password, email, phone, address, likedDongCodes: [], dislikedDongCodes: [] }
+        const user: MockUser = {
+          id,
+          password,
+          email,
+          phone,
+          address,
+          likedDongCodes: [],
+          dislikedDongCodes: [],
+          likedTransactionIds: [],
+          dislikedTransactionIds: [],
+        }
         set((state) => ({ users: [...state.users, user] }))
         return { ok: true }
       },
@@ -76,17 +104,11 @@ export const useAuthStore = create<AuthState>()(
         const { users, currentUserId } = get()
         if (!currentUserId) return
         set({
-          users: users.map((u) =>
-            u.id !== currentUserId
-              ? u
-              : {
-                  ...u,
-                  likedDongCodes: u.likedDongCodes.includes(dongCode)
-                    ? u.likedDongCodes.filter((c) => c !== dongCode)
-                    : [...u.likedDongCodes, dongCode],
-                  dislikedDongCodes: u.dislikedDongCodes.filter((c) => c !== dongCode),
-                },
-          ),
+          users: users.map((u) => {
+            if (u.id !== currentUserId) return u
+            const { liked, disliked } = toggleExclusive(u.likedDongCodes, u.dislikedDongCodes, dongCode, true)
+            return { ...u, likedDongCodes: liked, dislikedDongCodes: disliked }
+          }),
         })
       },
 
@@ -94,21 +116,54 @@ export const useAuthStore = create<AuthState>()(
         const { users, currentUserId } = get()
         if (!currentUserId) return
         set({
-          users: users.map((u) =>
-            u.id !== currentUserId
-              ? u
-              : {
-                  ...u,
-                  dislikedDongCodes: u.dislikedDongCodes.includes(dongCode)
-                    ? u.dislikedDongCodes.filter((c) => c !== dongCode)
-                    : [...u.dislikedDongCodes, dongCode],
-                  likedDongCodes: u.likedDongCodes.filter((c) => c !== dongCode),
-                },
-          ),
+          users: users.map((u) => {
+            if (u.id !== currentUserId) return u
+            const { liked, disliked } = toggleExclusive(u.likedDongCodes, u.dislikedDongCodes, dongCode, false)
+            return { ...u, likedDongCodes: liked, dislikedDongCodes: disliked }
+          }),
+        })
+      },
+
+      toggleLikeTransaction: (transactionId) => {
+        const { users, currentUserId } = get()
+        if (!currentUserId) return
+        set({
+          users: users.map((u) => {
+            if (u.id !== currentUserId) return u
+            const { liked, disliked } = toggleExclusive(
+              u.likedTransactionIds,
+              u.dislikedTransactionIds,
+              transactionId,
+              true,
+            )
+            return { ...u, likedTransactionIds: liked, dislikedTransactionIds: disliked }
+          }),
+        })
+      },
+
+      toggleDislikeTransaction: (transactionId) => {
+        const { users, currentUserId } = get()
+        if (!currentUserId) return
+        set({
+          users: users.map((u) => {
+            if (u.id !== currentUserId) return u
+            const { liked, disliked } = toggleExclusive(
+              u.likedTransactionIds,
+              u.dislikedTransactionIds,
+              transactionId,
+              false,
+            )
+            return { ...u, likedTransactionIds: liked, dislikedTransactionIds: disliked }
+          }),
         })
       },
     }),
-    { name: 'hw-auth' },
+    {
+      name: 'hw-auth',
+      version: 2,
+      // v1 계정에는 매물 좋아요/싫어요 필드가 없으므로 구버전 데이터는 초기화한다.
+      migrate: (_persistedState, version) => (version < 2 ? { users: [], currentUserId: null } : _persistedState),
+    },
   ),
 )
 

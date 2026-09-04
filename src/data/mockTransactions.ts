@@ -1,5 +1,6 @@
 import type { BudgetCondition, DealType, RegionBase, Transaction } from '../types'
 import { ALL_PROPERTY_TYPES, AREA_RANGE } from './dealTypeRanges'
+import { REGIONS } from './regions'
 import { createRng } from '../utils/rng'
 
 const APT_POOL = [
@@ -54,6 +55,19 @@ export function generateTransactions(region: RegionBase, dealType: DealType, cou
   }
 
   return txs.sort((a, b) => b.dealDate.localeCompare(a.dealDate))
+}
+
+/** id(`${dongCode}-${dealType}-${index}`)로 매물을 다시 찾는다. 시드 기반 생성이라 결정론적으로 동일한 매물이 나온다. */
+export function findTransactionById(id: string): Transaction | undefined {
+  const parts = id.split('-')
+  if (parts.length < 3) return undefined
+  const index = Number(parts[parts.length - 1])
+  const dealType = parts[parts.length - 2] as DealType
+  const dongCode = parts.slice(0, parts.length - 2).join('-')
+  if (Number.isNaN(index)) return undefined
+  const region = REGIONS.find((r) => r.dongCode === dongCode)
+  if (!region) return undefined
+  return generateTransactions(region, dealType, index + 1).find((t) => t.id === id)
 }
 
 /** 선택된 주택 유형 + 유형별 전용면적 범위로 거래 내역을 필터링 */
