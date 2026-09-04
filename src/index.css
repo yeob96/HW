@@ -36,3 +36,17 @@ body {
 .jiggle-b {
   animation: wiggle-b 0.25s ease-in-out infinite;
 }
+
+/* 활시위를 끝까지 당긴 듯, 드래그 제한 끝에 닿았을 때 아주 살짝 좌우로 떨리는 효과 */
+@keyframes tremble {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-1.5px);
+  }
+}
+.tremble {
+  animation: tremble 0.1s ease-in-out infinite;
+}

@@ -3,10 +3,10 @@ import { PROPERTY_TYPE_STYLES } from '../data/dealTypeRanges'
 import type { DealType, Transaction } from '../types'
 import { formatDate, formatManwon, formatManwonCompact } from '../utils/format'
 
-const SWIPE_THRESHOLD = 80
-const MAX_DRAG = 110
+const SWIPE_THRESHOLD = 52
+const MAX_DRAG = 72
 const SWIPE_OUT_DISTANCE = 500
-const REVEAL_THRESHOLD = 24
+const REVEAL_THRESHOLD = 16
 
 const GRID_COLS = 'grid-cols-[1fr_9rem] sm:grid-cols-[1fr_7rem_9rem]'
 
@@ -68,6 +68,8 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
     }
   }, [dragging, onSwipeDislike, onSwipeLike])
 
+  const maxedOut = dragging && Math.abs(dragX) >= MAX_DRAG
+
   const revealSide = flyingOut
     ? dragX > 0
       ? 'like'
@@ -122,36 +124,39 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
         </div>
       )}
       <div
-        onPointerDown={handlePointerDown}
-        className={`relative grid ${GRID_COLS} items-center bg-white text-slate-700 ${
-          draggable ? 'cursor-grab touch-pan-y select-none active:cursor-grabbing' : ''
-        }`}
         style={{
           transform: dragX ? `translateX(${dragX}px)` : undefined,
           transition: dragging ? 'none' : 'transform 0.2s ease-out',
         }}
       >
-        <div role="cell" className="px-4 py-2.5">
-          <div className="flex items-center gap-1.5 font-medium text-slate-900">
-            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
-            {t.aptName} ({t.area}㎡)
+        <div
+          onPointerDown={handlePointerDown}
+          className={`relative grid ${GRID_COLS} items-center bg-white text-slate-700 ${
+            draggable ? 'cursor-grab touch-pan-y select-none active:cursor-grabbing' : ''
+          } ${maxedOut ? 'tremble' : ''}`}
+        >
+          <div role="cell" className="px-4 py-2.5">
+            <div className="flex items-center gap-1.5 font-medium text-slate-900">
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
+              {t.aptName} ({t.area}㎡)
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              {liked ? (
+                <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center text-[9px] leading-none text-red-500">
+                  ♥
+                </span>
+              ) : (
+                <span className="h-2.5 w-2.5 shrink-0" />
+              )}
+              {t.address}
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            {liked ? (
-              <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center text-[9px] leading-none text-red-500">
-                ♥
-              </span>
-            ) : (
-              <span className="h-2.5 w-2.5 shrink-0" />
-            )}
-            {t.address}
+          <div role="cell" className="hidden px-4 py-2.5 text-center whitespace-nowrap text-slate-500 sm:block">
+            {formatDate(t.dealDate)}
           </div>
-        </div>
-        <div role="cell" className="hidden px-4 py-2.5 text-center whitespace-nowrap text-slate-500 sm:block">
-          {formatDate(t.dealDate)}
-        </div>
-        <div role="cell" className="px-4 py-2.5 text-right font-medium text-slate-900">
-          {priceLabel}
+          <div role="cell" className="px-4 py-2.5 text-right font-medium text-slate-900">
+            {priceLabel}
+          </div>
         </div>
       </div>
     </div>
