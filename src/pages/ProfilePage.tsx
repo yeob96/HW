@@ -3,20 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { findTransactionById } from '../data/mockTransactions'
 import { REGIONS } from '../data/regions'
 import { useAuthStore, useCurrentUser } from '../store/authStore'
-import type { Transaction } from '../types'
-import { formatManwon } from '../utils/format'
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400'
 
 function regionName(dongCode: string) {
   return REGIONS.find((r) => r.dongCode === dongCode)?.regionName ?? dongCode
-}
-
-function transactionAmountLabel(t: Transaction) {
-  if (t.dealType === '매매') return formatManwon(t.price)
-  if (t.dealType === '전세') return formatManwon(t.deposit)
-  return `${formatManwon(t.deposit)} / ${t.monthlyRent.toLocaleString()}만원`
 }
 
 type SubTab = 'region' | 'listing'
@@ -102,7 +94,6 @@ function LikeDislikeSection({
             <thead className="bg-slate-50 text-left text-xs text-slate-500">
               <tr>
                 <th className="px-4 py-2 font-medium">단지</th>
-                <th className="px-4 py-2 text-right font-medium">금액</th>
                 <th className="w-12 px-2 py-2" />
               </tr>
             </thead>
@@ -117,9 +108,6 @@ function LikeDislikeSection({
                         {tx.aptName} ({tx.area}㎡)
                       </div>
                       <div className="text-xs text-slate-400">{regionName(tx.dongCode)}</div>
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-medium text-slate-900">
-                      {transactionAmountLabel(tx)}
                     </td>
                     <td className="px-2 py-2.5 text-right">
                       <button
