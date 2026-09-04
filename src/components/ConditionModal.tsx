@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { AreaRangeLabel } from './AreaRangeLabel'
+import { BudgetRangeLabel } from './BudgetRangeLabel'
 import { RangeSlider } from './RangeSlider'
 import {
   ALL_DEAL_TYPES,
@@ -12,7 +14,7 @@ import {
 import { WORKPLACE_PRESETS } from '../data/workplaces'
 import { useSearchStore } from '../store/searchStore'
 import type { BudgetCondition, CommuteMode, DealType, PropertyType, Workplace } from '../types'
-import { formatRangeLabel } from '../utils/format'
+import { formatEokTick, formatEokTickBound, formatRangeLabel } from '../utils/format'
 
 const MINUTE_OPTIONS = [20, 30, 40, 50, 60, 90]
 
@@ -272,9 +274,12 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
 
                 <div className="mt-3 flex items-center justify-between">
                   <label className="text-sm text-slate-500">{dt === '월세' ? '보증금' : '예산'} 범위</label>
-                  <span className="text-sm font-medium text-slate-900">
-                    {formatRangeLabel(budget.minPrice, budget.maxPrice, DEAL_TYPE_RANGES[dt].max, (v) => `${(v / 10000).toFixed(1)}억`)}
-                  </span>
+                  <BudgetRangeLabel
+                    min={budget.minPrice}
+                    max={budget.maxPrice}
+                    rangeMax={DEAL_TYPE_RANGES[dt].max}
+                    format={(v) => formatEokTick(v)}
+                  />
                 </div>
                 <div className="mt-4">
                   <RangeSlider
@@ -285,7 +290,7 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                     valueMax={budget.maxPrice}
                     onChangeMin={(v) => setLocalBudgets((prev) => ({ ...prev, [dt]: { ...budget, minPrice: v } }))}
                     onChangeMax={(v) => setLocalBudgets((prev) => ({ ...prev, [dt]: { ...budget, maxPrice: v } }))}
-                    formatTick={(v) => `${(v / 10000).toFixed(1)}억`}
+                    formatTick={(v) => formatEokTickBound(v, DEAL_TYPE_RANGES[dt].max)}
                   />
                 </div>
 
@@ -366,9 +371,12 @@ export function ConditionModal({ open, onClose }: ConditionModalProps) {
                                 >
                                   {pt}
                                 </span>
-                                <span className="text-sm font-medium text-slate-900">
-                                  {formatRangeLabel(area.min, area.max, AREA_RANGE.max, (v) => `${v}㎡`)}
-                                </span>
+                                <AreaRangeLabel
+                                  min={area.min}
+                                  max={area.max}
+                                  rangeMax={AREA_RANGE.max}
+                                  format={(v) => `${v}㎡`}
+                                />
                               </div>
                               <div className="mt-2">
                                 <RangeSlider

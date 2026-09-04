@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, type Variants } from 'framer-motion'
+import { AreaRangeLabel } from '../components/AreaRangeLabel'
+import { BudgetRangeLabel } from '../components/BudgetRangeLabel'
 import { RangeSlider } from '../components/RangeSlider'
 import { StepIndicator } from '../components/StepIndicator'
 import {
@@ -14,7 +16,7 @@ import {
 import { WORKPLACE_PRESETS } from '../data/workplaces'
 import { useSearchStore } from '../store/searchStore'
 import type { CommuteMode, DealType } from '../types'
-import { formatRangeLabel } from '../utils/format'
+import { formatEokTick, formatEokTickBound, formatRangeLabel } from '../utils/format'
 
 const STEPS = ['직장 위치', '출퇴근 조건', '예산 조건']
 const MINUTE_OPTIONS = [20, 30, 40, 50, 60, 90]
@@ -311,9 +313,12 @@ export function InputPage() {
 
                     <div className="mt-3 flex items-center justify-between">
                       <label className="text-sm text-slate-500">{dt === '월세' ? '보증금' : '예산'} 범위</label>
-                      <span className="text-sm font-medium text-slate-900">
-                        {formatRangeLabel(budget.minPrice, budget.maxPrice, DEAL_TYPE_RANGES[dt].max, (v) => `${(v / 10000).toFixed(1)}억`)}
-                      </span>
+                      <BudgetRangeLabel
+                        min={budget.minPrice}
+                        max={budget.maxPrice}
+                        rangeMax={DEAL_TYPE_RANGES[dt].max}
+                        format={(v) => formatEokTick(v)}
+                      />
                     </div>
                     <div className="mt-4">
                       <RangeSlider
@@ -324,7 +329,7 @@ export function InputPage() {
                         valueMax={budget.maxPrice}
                         onChangeMin={(v) => setBudget(dt, { minPrice: v })}
                         onChangeMax={(v) => setBudget(dt, { maxPrice: v })}
-                        formatTick={(v) => `${(v / 10000).toFixed(1)}억`}
+                        formatTick={(v) => formatEokTickBound(v, DEAL_TYPE_RANGES[dt].max)}
                       />
                     </div>
 
@@ -401,9 +406,12 @@ export function InputPage() {
                                     >
                                       {pt}
                                     </span>
-                                    <span className="text-sm font-medium text-slate-900">
-                                      {formatRangeLabel(area.min, area.max, AREA_RANGE.max, (v) => `${v}㎡`)}
-                                    </span>
+                                    <AreaRangeLabel
+                                      min={area.min}
+                                      max={area.max}
+                                      rangeMax={AREA_RANGE.max}
+                                      format={(v) => `${v}㎡`}
+                                    />
                                   </div>
                                   <div className="mt-2">
                                     <RangeSlider

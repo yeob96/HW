@@ -1,10 +1,12 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { MapPlaceholder } from '../components/MapPlaceholder'
 import { PriceTrendChart } from '../components/PriceTrendChart'
 import { TransactionTable } from '../components/TransactionTable'
+import { ALL_PROPERTY_TYPES, PROPERTY_TYPE_STYLES } from '../data/dealTypeRanges'
 import { filterTransactions, generateTransactions, getPriceTrend } from '../data/mockTransactions'
 import { useSearchStore } from '../store/searchStore'
+import type { PropertyType } from '../types'
 import { formatManwon } from '../utils/format'
 
 export function RegionDetailPage() {
@@ -19,20 +21,32 @@ export function RegionDetailPage() {
   const getRegionResult = useSearchStore((s) => s.getRegionResult)
 
   const region = dongCode ? getRegionResult(dongCode) : undefined
+  const [activePropertyType, setActivePropertyType] = useState<PropertyType | '전체'>('전체')
 
   useEffect(() => {
     if (!hasSearched) navigate('/', { replace: true })
     else if (!region) navigate('/results', { replace: true })
   }, [hasSearched, region, navigate])
 
+  useEffect(() => {
+    setActivePropertyType('전체')
+  }, [dongCode, activeDealType])
+
   const budget = budgets[activeDealType]
   const transactions = useMemo(
-    () => (region ? filterTransactions(generateTransactions(region, activeDealType, 40), budget).slice(0, 12) : []),
+    () => (region ? filterTransactions(generateTransactions(region, activeDealType, 40), budget) : []),
     [region, activeDealType, budget],
   )
   const trend = useMemo(
     () => (region ? getPriceTrend(region, activeDealType, budget) : []),
     [region, activeDealType, budget],
+  )
+  const filteredTransactions = useMemo(
+    () =>
+      activePropertyType === '전체'
+        ? transactions
+        : transactions.filter((t) => t.propertyType === activePropertyType),
+    [transactions, activePropertyType],
   )
 
   if (!region) return null
@@ -45,7 +59,7 @@ export function RegionDetailPage() {
         : `${formatManwon(region.avgDeposit)} / 월 ${region.avgMonthlyRent.toLocaleString()}만원`
 
   return (
-    <div className="flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
+    <div className="flex min-h-screen flex-col">
       <header className="shrink-0 border-b border-slate-100 px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <button
@@ -101,11 +115,37 @@ export function RegionDetailPage() {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col lg:col-span-3 lg:mt-0 lg:min-h-0">
+        <div className="mt-6 flex flex-col lg:col-span-3 lg:mt-0 lg:self-start">
           <h2 className="mb-3 shrink-0 text-sm font-medium text-slate-700">최근 실거래 내역</h2>
-          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-            <TransactionTable transactions={transactions} dealType={activeDealType} />
+          <div className="mb-3 flex shrink-0 items-center gap-2 border-b border-slate-100 sm:gap-4">
+            <button
+              onClick={() => setActivePropertyType('전체')}
+              className={[
+                '-mb-px cursor-pointer whitespace-nowrap border-b-2 px-0.5 py-2 text-xs font-medium transition-colors sm:px-1 sm:text-sm',
+                activePropertyType === '전체'
+                  ? 'border-emerald-600 text-emerald-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-600',
+              ].join(' ')}
+            >
+              전체
+            </button>
+            {ALL_PROPERTY_TYPES.map((pt) => (
+              <button
+                key={pt}
+                onClick={() => setActivePropertyType(pt)}
+                className={[
+                  '-mb-px flex cursor-pointer items-center gap-1 whitespace-nowrap border-b-2 px-0.5 py-2 text-xs font-medium transition-colors sm:gap-1.5 sm:px-1 sm:text-sm',
+                  activePropertyType === pt
+                    ? 'border-emerald-600 text-emerald-700'
+                    : 'border-transparent text-slate-400 hover:text-slate-600',
+                ].join(' ')}
+              >
+                <span className={`h-2 w-2 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[pt].bg}`} />
+                {pt}
+              </button>
+            ))}
           </div>
+          <TransactionTable transactions={filteredTransactions} dealType={activeDealType} />
         </div>
       </main>
     </div>
