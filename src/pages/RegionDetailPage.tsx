@@ -112,7 +112,7 @@ export function RegionDetailPage() {
                   onClick={() => setConfirmingExclude(true)}
                   className="cursor-pointer rounded-full border border-blue-600 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
                 >
-                  검색제외
+                  해당지역 검색 제외 하기
                 </button>
               )}
             </div>

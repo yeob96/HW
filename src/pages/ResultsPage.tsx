@@ -78,7 +78,7 @@ export function ResultsPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-6 lg:flex-row">
-        <div className="h-80 lg:h-auto lg:w-3/5">
+        <div className="h-80 lg:h-auto lg:w-1/2">
           <MapPlaceholder
             workplace={workplace}
             regions={results}
