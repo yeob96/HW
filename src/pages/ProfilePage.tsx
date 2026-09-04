@@ -10,6 +10,14 @@ function regionName(dongCode: string) {
   return REGIONS.find((r) => r.dongCode === dongCode)?.regionName ?? dongCode
 }
 
+type Tab = 'profile' | 'liked' | 'disliked'
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'profile', label: '회원정보 수정' },
+  { key: 'liked', label: '좋아요한 지역' },
+  { key: 'disliked', label: '싫어요한 지역' },
+]
+
 export function ProfilePage() {
   const navigate = useNavigate()
   const user = useCurrentUser()
@@ -19,6 +27,7 @@ export function ProfilePage() {
   const toggleLike = useAuthStore((s) => s.toggleLike)
   const toggleDislike = useAuthStore((s) => s.toggleDislike)
 
+  const [activeTab, setActiveTab] = useState<Tab>('profile')
   const [unlocked, setUnlocked] = useState(false)
   const [gatePassword, setGatePassword] = useState('')
   const [gateError, setGateError] = useState('')
@@ -101,109 +110,140 @@ export function ProfilePage() {
         </div>
       ) : (
         <>
-          <div className="mt-6 space-y-3 rounded-lg border border-slate-200 p-4">
-            <p className="text-sm font-medium text-slate-700">
-              <span className="text-slate-900">{user.id}</span> 님
-            </p>
-            <div>
-              <label className="mb-1 block text-xs text-slate-500">이메일</label>
-              <input className={inputClass} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-500">전화번호</label>
-              <input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-500">주소</label>
-              <input className={inputClass} value={address} onChange={(e) => setAddress(e.target.value)} />
-            </div>
-            {saveMessage && <p className="text-xs text-emerald-600">{saveMessage}</p>}
-            {saveError && <p className="text-xs text-red-500">{saveError}</p>}
-            <button
-              onClick={handleSave}
-              className="w-full cursor-pointer rounded-lg bg-slate-900 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              저장
-            </button>
-          </div>
-
-          <div className="mt-6 rounded-lg border border-slate-200 p-4">
-            <p className="text-sm font-medium text-slate-700">좋아요한 지역</p>
-            {user.likedDongCodes.length === 0 ? (
-              <p className="mt-2 text-xs text-slate-400">좋아요한 지역이 없어요.</p>
-            ) : (
-              <ul className="mt-2 space-y-1.5">
-                {user.likedDongCodes.map((code) => (
-                  <li key={code} className="flex items-center justify-between text-sm text-slate-700">
-                    {regionName(code)}
-                    <button
-                      onClick={() => toggleLike(code)}
-                      className="cursor-pointer text-xs text-slate-400 hover:text-slate-600"
-                    >
-                      취소
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <p className="mt-4 text-sm font-medium text-slate-700">싫어요한 지역 (검색 결과에서 제외됨)</p>
-            {user.dislikedDongCodes.length === 0 ? (
-              <p className="mt-2 text-xs text-slate-400">싫어요한 지역이 없어요.</p>
-            ) : (
-              <ul className="mt-2 space-y-1.5">
-                {user.dislikedDongCodes.map((code) => (
-                  <li key={code} className="flex items-center justify-between text-sm text-slate-700">
-                    {regionName(code)}
-                    <button
-                      onClick={() => toggleDislike(code)}
-                      className="cursor-pointer text-xs text-slate-400 hover:text-slate-600"
-                    >
-                      취소
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="mt-6 flex items-center justify-between">
-            <button
-              onClick={() => {
-                logout()
-                navigate('/')
-              }}
-              className="cursor-pointer text-sm text-slate-500 hover:text-slate-700"
-            >
-              로그아웃
-            </button>
-
-            {!confirmingDelete ? (
+          <div className="mt-6 flex gap-4 border-b border-slate-100">
+            {TABS.map((tab) => (
               <button
-                onClick={() => setConfirmingDelete(true)}
-                className="cursor-pointer text-sm text-red-500 hover:text-red-600"
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={[
+                  '-mb-px cursor-pointer border-b-2 px-1 py-2 text-sm font-medium transition-colors',
+                  activeTab === tab.key
+                    ? 'border-emerald-600 text-emerald-700'
+                    : 'border-transparent text-slate-400 hover:text-slate-600',
+                ].join(' ')}
               >
-                회원 탈퇴
+                {tab.label}
               </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">정말 탈퇴하시겠어요?</span>
+            ))}
+          </div>
+
+          {activeTab === 'profile' && (
+            <>
+              <div className="mt-6 space-y-3 rounded-lg border border-slate-200 p-4">
+                <p className="text-sm font-medium text-slate-700">
+                  <span className="text-slate-900">{user.id}</span> 님
+                </p>
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">이메일</label>
+                  <input
+                    className={inputClass}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">전화번호</label>
+                  <input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">주소</label>
+                  <input className={inputClass} value={address} onChange={(e) => setAddress(e.target.value)} />
+                </div>
+                {saveMessage && <p className="text-xs text-emerald-600">{saveMessage}</p>}
+                {saveError && <p className="text-xs text-red-500">{saveError}</p>}
                 <button
-                  onClick={handleDelete}
-                  className="cursor-pointer rounded-lg bg-red-500 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-600"
+                  onClick={handleSave}
+                  className="w-full cursor-pointer rounded-lg bg-slate-900 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
                 >
-                  탈퇴
-                </button>
-                <button
-                  onClick={() => setConfirmingDelete(false)}
-                  className="cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:border-slate-300"
-                >
-                  취소
+                  저장
                 </button>
               </div>
-            )}
-          </div>
-          {deleteError && <p className="mt-2 text-right text-xs text-red-500">{deleteError}</p>}
+
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    logout()
+                    navigate('/')
+                  }}
+                  className="cursor-pointer text-sm text-slate-500 hover:text-slate-700"
+                >
+                  로그아웃
+                </button>
+
+                {!confirmingDelete ? (
+                  <button
+                    onClick={() => setConfirmingDelete(true)}
+                    className="cursor-pointer text-sm text-red-500 hover:text-red-600"
+                  >
+                    회원 탈퇴
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">정말 탈퇴하시겠어요?</span>
+                    <button
+                      onClick={handleDelete}
+                      className="cursor-pointer rounded-lg bg-red-500 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-600"
+                    >
+                      탈퇴
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDelete(false)}
+                      className="cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:border-slate-300"
+                    >
+                      취소
+                    </button>
+                  </div>
+                )}
+              </div>
+              {deleteError && <p className="mt-2 text-right text-xs text-red-500">{deleteError}</p>}
+            </>
+          )}
+
+          {activeTab === 'liked' && (
+            <div className="mt-6 rounded-lg border border-slate-200 p-4">
+              {user.likedDongCodes.length === 0 ? (
+                <p className="text-xs text-slate-400">좋아요한 지역이 없어요.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {user.likedDongCodes.map((code) => (
+                    <li key={code} className="flex items-center justify-between text-sm text-slate-700">
+                      {regionName(code)}
+                      <button
+                        onClick={() => toggleLike(code)}
+                        className="cursor-pointer text-xs text-slate-400 hover:text-slate-600"
+                      >
+                        취소
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'disliked' && (
+            <div className="mt-6 rounded-lg border border-slate-200 p-4">
+              <p className="mb-2 text-xs text-slate-400">싫어요한 지역은 검색 결과에서 제외돼요.</p>
+              {user.dislikedDongCodes.length === 0 ? (
+                <p className="text-xs text-slate-400">싫어요한 지역이 없어요.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {user.dislikedDongCodes.map((code) => (
+                    <li key={code} className="flex items-center justify-between text-sm text-slate-700">
+                      {regionName(code)}
+                      <button
+                        onClick={() => toggleDislike(code)}
+                        className="cursor-pointer text-xs text-slate-400 hover:text-slate-600"
+                      >
+                        취소
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
