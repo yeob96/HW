@@ -73,69 +73,73 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
         ? 'dislike'
         : null
 
+  const foregroundStyle: React.CSSProperties = {
+    transform: dragX ? `translateX(${dragX}px)` : undefined,
+    transition: dragging ? 'none' : 'transform 0.2s ease-out',
+    position: 'relative',
+    backgroundColor: 'white',
+  }
+
   return (
     <tr
       onPointerDown={handlePointerDown}
       className={`text-slate-700 ${draggable ? 'cursor-grab touch-pan-y select-none active:cursor-grabbing' : ''}`}
-      style={{
-        transform: dragX ? `translateX(${dragX}px)` : undefined,
-        transition: dragging ? 'none' : 'transform 0.2s ease-out, background-color 0.2s ease-out',
-        backgroundColor: revealSide === 'like' ? '#ef4444' : revealSide === 'dislike' ? '#3b82f6' : undefined,
-      }}
+      style={{ backgroundColor: revealSide === 'like' ? '#ef4444' : revealSide === 'dislike' ? '#3b82f6' : undefined }}
     >
-      <td className="relative px-4 py-2.5">
-        {revealSide && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-lg text-white">
-            {revealSide === 'like' ? '♥' : '👎'}
+      <td className="relative overflow-hidden p-0">
+        {revealSide === 'like' && (
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-lg text-white">♥</span>
+        )}
+        {revealSide === 'dislike' && (
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-lg text-white">👎</span>
+        )}
+        <div className="px-4 py-2.5" style={foregroundStyle}>
+          <div className="flex items-center gap-1.5 font-medium text-slate-900">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
+            {t.aptName} ({t.area}㎡)
           </div>
-        )}
-        <div
-          className="flex items-center gap-1.5 font-medium text-slate-900"
-          style={{ visibility: revealSide ? 'hidden' : 'visible' }}
-        >
-          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[t.propertyType].bg}`} />
-          {t.aptName} ({t.area}㎡)
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            {liked ? (
+              <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center text-[9px] leading-none text-red-500">
+                ♥
+              </span>
+            ) : (
+              <span className="h-2.5 w-2.5 shrink-0" />
+            )}
+            {t.address}
+          </div>
         </div>
-        <div
-          className="flex items-center gap-1.5 text-xs text-slate-400"
-          style={{ visibility: revealSide ? 'hidden' : 'visible' }}
-        >
-          {liked ? (
-            <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center text-[9px] leading-none text-red-500">
-              ♥
-            </span>
-          ) : (
-            <span className="h-2.5 w-2.5 shrink-0" />
+      </td>
+      <td className="relative hidden overflow-hidden p-0 sm:table-cell">
+        <div className="px-4 py-2.5 text-center whitespace-nowrap text-slate-500" style={foregroundStyle}>
+          {formatDate(t.dealDate)}
+        </div>
+      </td>
+      <td className="relative overflow-hidden p-0">
+        <div className="px-4 py-2.5 text-right font-medium text-slate-900" style={foregroundStyle}>
+          {dealType === '매매' && (
+            <>
+              <span className="sm:hidden">{formatManwonCompact(t.price)}</span>
+              <span className="hidden sm:inline">{formatManwon(t.price)}</span>
+            </>
           )}
-          {t.address}
+          {dealType === '전세' && (
+            <>
+              <span className="sm:hidden">{formatManwonCompact(t.deposit)}</span>
+              <span className="hidden sm:inline">{formatManwon(t.deposit)}</span>
+            </>
+          )}
+          {dealType === '월세' && (
+            <>
+              <span className="sm:hidden">
+                {formatManwonCompact(t.deposit)} / {t.monthlyRent.toLocaleString()}만원
+              </span>
+              <span className="hidden sm:inline">
+                {formatManwon(t.deposit)} / {t.monthlyRent.toLocaleString()}만원
+              </span>
+            </>
+          )}
         </div>
-      </td>
-      <td className="hidden whitespace-nowrap px-4 py-2.5 text-center text-slate-500 sm:table-cell">
-        {formatDate(t.dealDate)}
-      </td>
-      <td className="px-4 py-2.5 text-right font-medium text-slate-900">
-        {dealType === '매매' && (
-          <>
-            <span className="sm:hidden">{formatManwonCompact(t.price)}</span>
-            <span className="hidden sm:inline">{formatManwon(t.price)}</span>
-          </>
-        )}
-        {dealType === '전세' && (
-          <>
-            <span className="sm:hidden">{formatManwonCompact(t.deposit)}</span>
-            <span className="hidden sm:inline">{formatManwon(t.deposit)}</span>
-          </>
-        )}
-        {dealType === '월세' && (
-          <>
-            <span className="sm:hidden">
-              {formatManwonCompact(t.deposit)} / {t.monthlyRent.toLocaleString()}만원
-            </span>
-            <span className="hidden sm:inline">
-              {formatManwon(t.deposit)} / {t.monthlyRent.toLocaleString()}만원
-            </span>
-          </>
-        )}
       </td>
     </tr>
   )
