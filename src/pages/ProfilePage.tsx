@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ALL_PROPERTY_TYPES, PROPERTY_TYPE_STYLES } from '../data/dealTypeRanges'
 import { findTransactionById } from '../data/mockTransactions'
 import { REGIONS } from '../data/regions'
 import { useAuthStore, useCurrentUser } from '../store/authStore'
+import type { PropertyType, Transaction } from '../types'
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400'
@@ -32,7 +34,16 @@ function LikeDislikeSection({
   onRemoveTransaction,
 }: LikeDislikeSectionProps) {
   const [subTab, setSubTab] = useState<SubTab>('region')
+  const [activePropertyType, setActivePropertyType] = useState<PropertyType | '전체'>('전체')
   const hasData = dongCodes.length > 0 || transactionIds.length > 0
+
+  const transactions = transactionIds
+    .map((id) => findTransactionById(id))
+    .filter((t): t is Transaction => !!t)
+  const filteredTransactions =
+    activePropertyType === '전체'
+      ? transactions
+      : transactions.filter((t) => t.propertyType === activePropertyType)
 
   if (!hasData) {
     return (
@@ -68,6 +79,37 @@ function LikeDislikeSection({
         ))}
       </div>
 
+      {subTab === 'listing' && transactions.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-slate-100">
+          <button
+            onClick={() => setActivePropertyType('전체')}
+            className={[
+              '-mb-px cursor-pointer whitespace-nowrap border-b-2 px-1 py-1.5 text-xs font-medium transition-colors',
+              activePropertyType === '전체'
+                ? 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-slate-400 hover:text-slate-600',
+            ].join(' ')}
+          >
+            전체
+          </button>
+          {ALL_PROPERTY_TYPES.map((pt) => (
+            <button
+              key={pt}
+              onClick={() => setActivePropertyType(pt)}
+              className={[
+                '-mb-px flex cursor-pointer items-center gap-1 whitespace-nowrap border-b-2 px-1 py-1.5 text-xs font-medium transition-colors',
+                activePropertyType === pt
+                  ? 'border-emerald-600 text-emerald-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-600',
+              ].join(' ')}
+            >
+              <span className={`h-2 w-2 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[pt].bg}`} />
+              {pt}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-lg border border-slate-200">
         {subTab === 'region' ? (
           dongCodes.length === 0 ? (
@@ -87,7 +129,7 @@ function LikeDislikeSection({
               ))}
             </ul>
           )
-        ) : transactionIds.length === 0 ? (
+        ) : transactions.length === 0 ? (
           <p className="p-4 text-xs text-slate-400">매물이 없어요.</p>
         ) : (
           <table className="w-full text-sm">
@@ -98,28 +140,25 @@ function LikeDislikeSection({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {transactionIds.map((id) => {
-                const tx = findTransactionById(id)
-                if (!tx) return null
-                return (
-                  <tr key={id} className="text-slate-700">
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium text-slate-900">
-                        {tx.aptName} ({tx.area}㎡)
-                      </div>
-                      <div className="text-xs text-slate-400">{regionName(tx.dongCode)}</div>
-                    </td>
-                    <td className="px-2 py-2.5 text-right">
-                      <button
-                        onClick={() => onRemoveTransaction(id)}
-                        className="cursor-pointer text-xs text-slate-400 hover:text-slate-600"
-                      >
-                        취소
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
+              {filteredTransactions.map((tx) => (
+                <tr key={tx.id} className="text-slate-700">
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-1.5 font-medium text-slate-900">
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PROPERTY_TYPE_STYLES[tx.propertyType].bg}`} />
+                      {tx.aptName} ({tx.area}㎡)
+                    </div>
+                    <div className="pl-4 text-xs text-slate-400">{regionName(tx.dongCode)}</div>
+                  </td>
+                  <td className="px-2 py-2.5 text-right">
+                    <button
+                      onClick={() => onRemoveTransaction(tx.id)}
+                      className="cursor-pointer text-xs text-slate-400 hover:text-slate-600"
+                    >
+                      취소
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         )}
