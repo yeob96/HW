@@ -77,9 +77,10 @@ export function RegionDetailPage() {
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <button
             onClick={() => navigate('/results')}
+            aria-label="목록으로 돌아가기"
             className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:border-slate-300"
           >
-            ← 목록
+            ← <span className="hidden sm:inline">목록</span>
           </button>
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
             {activeDealType}
@@ -114,7 +115,8 @@ export function RegionDetailPage() {
                   onClick={() => setConfirmingExclude(true)}
                   className="cursor-pointer rounded-full border border-blue-600 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
                 >
-                  해당지역 검색 제외 하기
+                  <span className="sm:hidden">제외</span>
+                  <span className="hidden sm:inline">해당지역 검색 제외 하기</span>
                 </button>
               )}
             </div>
