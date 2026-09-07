@@ -142,6 +142,7 @@ export function RegionDetailPage() {
                 onClick={() => {
                   toggleDislike(region.dongCode)
                   setConfirmingExclude(false)
+                  navigate('/results')
                 }}
                 className="cursor-pointer rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600"
               >
