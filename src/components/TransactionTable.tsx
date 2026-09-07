@@ -24,6 +24,7 @@ interface TransactionRowProps {
 
 /**
  * 행을 왼쪽으로 드래그하면 싫어요, 오른쪽으로 드래그하면 좋아요(상단 우선 정렬) 처리된다.
+ * 이미 좋아요/싫어요된 행을 같은 방향으로 다시 드래그하면 그 상태를 취소한다.
  * 실제 데이터는 흰 배경의 앞면 레이어(그리드)가 통째로 밀리면서, 뒤에 숨어있던 배경(빨강/파랑 + 아이콘)이 드러난다.
  */
 function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDislike }: TransactionRowProps) {
@@ -31,8 +32,7 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
   const [dragging, setDragging] = useState(false)
   const [flyingOut, setFlyingOut] = useState(false)
   const startX = useRef(0)
-  // 이미 좋아요/싫어요 처리된 매물은 더 이상 드래그(재처리)할 수 없다
-  const draggable = !liked && !disliked && !!(onSwipeLike || onSwipeDislike)
+  const draggable = !!(onSwipeLike || onSwipeDislike)
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggable) return
@@ -131,9 +131,13 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
           style={{ backgroundColor: revealSide === 'like' ? '#ef4444' : '#3b82f6' }}
         >
           {revealSide === 'like' ? (
-            <span className="pl-4 text-lg text-white">♥</span>
+            <span className={`pl-4 text-white ${liked ? 'text-sm font-medium' : 'text-lg'}`}>
+              {liked ? '취소' : '♥'}
+            </span>
           ) : (
-            <span className="ml-auto pr-4 text-lg text-white">👎</span>
+            <span className={`ml-auto pr-4 text-white ${disliked ? 'text-sm font-medium' : 'text-lg'}`}>
+              {disliked ? '취소' : '👎'}
+            </span>
           )}
         </div>
       )}
