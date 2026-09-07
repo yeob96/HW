@@ -219,6 +219,7 @@ export function RegionDetailPage() {
           <TransactionTable
             transactions={filteredTransactions}
             dealType={activeDealType}
+            regionName={region.regionName}
             likedIds={user?.likedTransactionIds}
             dislikedIds={user?.dislikedTransactionIds}
             onToggleLike={user ? toggleLikeTransaction : undefined}

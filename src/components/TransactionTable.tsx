@@ -193,9 +193,35 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
   )
 }
 
+/** 목록 최상단에 고정으로 보이는 샘플 광고 매물 행 — 실제 거래 데이터가 아니다. */
+function AdRow({ title, regionName }: { title: string; regionName: string }) {
+  return (
+    <div
+      role="row"
+      className={`grid ${GRID_COLS} items-center border-t border-amber-100 bg-amber-50/60 text-slate-700`}
+    >
+      <div role="cell" className="px-4 py-2.5">
+        <div className="flex items-center gap-1.5 font-medium text-slate-900">
+          <span className="rounded bg-amber-200 px-1 py-0.5 text-[9px] font-semibold tracking-wide text-amber-800">
+            AD
+          </span>
+          {title}
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+          <span className="h-2.5 w-2.5 shrink-0" />
+          {regionName}
+        </div>
+      </div>
+      <div className="hidden px-4 py-2.5 text-center whitespace-nowrap text-slate-400 sm:block">광고</div>
+      <div role="cell" className="px-4 py-2.5 text-right font-medium text-amber-700">자세히 보기</div>
+    </div>
+  )
+}
+
 interface TransactionTableProps {
   transactions: Transaction[]
   dealType: DealType
+  regionName: string
   likedIds?: string[]
   dislikedIds?: string[]
   onToggleLike?: (id: string) => void
@@ -205,6 +231,7 @@ interface TransactionTableProps {
 export function TransactionTable({
   transactions,
   dealType,
+  regionName,
   likedIds,
   dislikedIds,
   onToggleLike,
@@ -213,19 +240,20 @@ export function TransactionTable({
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 lg:max-h-[712px] lg:overflow-y-auto">
       <div role="table" className="w-full text-sm">
-        <div
-          role="row"
-          className={`sticky top-0 z-10 grid ${GRID_COLS} bg-slate-50 text-left text-xs text-slate-500`}
-        >
-          <div role="columnheader" className="px-4 py-2 font-medium">
-            단지
+        <div className="sticky top-0 z-10">
+          <div role="row" className={`grid ${GRID_COLS} bg-slate-50 text-left text-xs text-slate-500`}>
+            <div role="columnheader" className="px-4 py-2 font-medium">
+              단지
+            </div>
+            <div role="columnheader" className="hidden px-4 py-2 text-center font-medium sm:block">
+              거래일
+            </div>
+            <div role="columnheader" className="px-4 py-2 text-right font-medium">
+              {dealType === '매매' ? '매매가' : dealType === '전세' ? '보증금' : '보증금 / 월세'}
+            </div>
           </div>
-          <div role="columnheader" className="hidden px-4 py-2 text-center font-medium sm:block">
-            거래일
-          </div>
-          <div role="columnheader" className="px-4 py-2 text-right font-medium">
-            {dealType === '매매' ? '매매가' : dealType === '전세' ? '보증금' : '보증금 / 월세'}
-          </div>
+          <AdRow title={`${regionName} 신축 분양 안내`} regionName={regionName} />
+          <AdRow title={`${regionName} 프리미엄 매물`} regionName={regionName} />
         </div>
         <div className="divide-y divide-slate-100">
           <AnimatePresence initial={false} mode="popLayout">
