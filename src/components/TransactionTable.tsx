@@ -17,6 +17,7 @@ interface TransactionRowProps {
   t: Transaction
   dealType: DealType
   liked: boolean
+  disliked: boolean
   onSwipeLike?: () => void
   onSwipeDislike?: () => void
 }
@@ -25,13 +26,13 @@ interface TransactionRowProps {
  * 행을 왼쪽으로 드래그하면 싫어요, 오른쪽으로 드래그하면 좋아요(상단 우선 정렬) 처리된다.
  * 실제 데이터는 흰 배경의 앞면 레이어(그리드)가 통째로 밀리면서, 뒤에 숨어있던 배경(빨강/파랑 + 아이콘)이 드러난다.
  */
-function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: TransactionRowProps) {
+function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDislike }: TransactionRowProps) {
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [flyingOut, setFlyingOut] = useState(false)
   const startX = useRef(0)
-  // 이미 좋아요된 매물은 더 이상 드래그(좋아요/싫어요 재처리)할 수 없다
-  const draggable = !liked && !!(onSwipeLike || onSwipeDislike)
+  // 이미 좋아요/싫어요 처리된 매물은 더 이상 드래그(재처리)할 수 없다
+  const draggable = !liked && !disliked && !!(onSwipeLike || onSwipeDislike)
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggable) return
@@ -48,7 +49,12 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
       if (delta <= -SWIPE_THRESHOLD && onSwipeDislike) {
         setFlyingOut(true)
         setDragX(-SWIPE_OUT_DISTANCE)
-        setTimeout(onSwipeDislike, 150)
+        setTimeout(() => {
+          onSwipeDislike()
+          // 싫어요도 목록에서 사라지지 않고 맨 아래로 재정렬되므로, 밀려난 위치를 되돌려놓는다
+          setFlyingOut(false)
+          setDragX(0)
+        }, 150)
       } else if (delta >= SWIPE_THRESHOLD && onSwipeLike) {
         setFlyingOut(true)
         setDragX(SWIPE_OUT_DISTANCE)
@@ -153,6 +159,10 @@ function TransactionRow({ t, dealType, liked, onSwipeLike, onSwipeDislike }: Tra
                 <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center text-[9px] leading-none text-red-500">
                   ♥
                 </span>
+              ) : disliked ? (
+                <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center text-[9px] leading-none">
+                  👎
+                </span>
               ) : (
                 <span className="h-2.5 w-2.5 shrink-0" />
               )}
@@ -175,11 +185,19 @@ interface TransactionTableProps {
   transactions: Transaction[]
   dealType: DealType
   likedIds?: string[]
+  dislikedIds?: string[]
   onToggleLike?: (id: string) => void
   onToggleDislike?: (id: string) => void
 }
 
-export function TransactionTable({ transactions, dealType, likedIds, onToggleLike, onToggleDislike }: TransactionTableProps) {
+export function TransactionTable({
+  transactions,
+  dealType,
+  likedIds,
+  dislikedIds,
+  onToggleLike,
+  onToggleDislike,
+}: TransactionTableProps) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 lg:max-h-[712px] lg:overflow-y-auto">
       <div role="table" className="w-full text-sm">
@@ -205,6 +223,7 @@ export function TransactionTable({ transactions, dealType, likedIds, onToggleLik
                 t={t}
                 dealType={dealType}
                 liked={!!likedIds?.includes(t.id)}
+                disliked={!!dislikedIds?.includes(t.id)}
                 onSwipeLike={onToggleLike ? () => onToggleLike(t.id) : undefined}
                 onSwipeDislike={onToggleDislike ? () => onToggleDislike(t.id) : undefined}
               />

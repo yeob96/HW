@@ -53,15 +53,14 @@ export function RegionDetailPage() {
   )
   const dislikedTransactionIds = user?.dislikedTransactionIds ?? EMPTY_IDS
   const likedTransactionIds = user?.likedTransactionIds ?? EMPTY_IDS
-  const filteredTransactions = useMemo(
-    () =>
-      transactions
-        .filter((t) => activePropertyType === '전체' || t.propertyType === activePropertyType)
-        .filter((t) => !dislikedTransactionIds.includes(t.id))
-        .slice()
-        .sort((a, b) => Number(likedTransactionIds.includes(b.id)) - Number(likedTransactionIds.includes(a.id))),
-    [transactions, activePropertyType, dislikedTransactionIds, likedTransactionIds],
-  )
+  const filteredTransactions = useMemo(() => {
+    // 좋아요 매물은 맨 위로, 싫어요 매물은 맨 아래로, 나머지는 그대로 둔다
+    const rank = (id: string) => (likedTransactionIds.includes(id) ? -1 : dislikedTransactionIds.includes(id) ? 1 : 0)
+    return transactions
+      .filter((t) => activePropertyType === '전체' || t.propertyType === activePropertyType)
+      .slice()
+      .sort((a, b) => rank(a.id) - rank(b.id))
+  }, [transactions, activePropertyType, dislikedTransactionIds, likedTransactionIds])
 
   if (!region) return null
 
@@ -225,6 +224,7 @@ export function RegionDetailPage() {
             transactions={filteredTransactions}
             dealType={activeDealType}
             likedIds={user?.likedTransactionIds}
+            dislikedIds={user?.dislikedTransactionIds}
             onToggleLike={user ? toggleLikeTransaction : undefined}
             onToggleDislike={user ? toggleDislikeTransaction : undefined}
           />
