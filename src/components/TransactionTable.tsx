@@ -25,8 +25,8 @@ interface TransactionRowProps {
 /**
  * 행을 왼쪽으로 드래그하면 싫어요, 오른쪽으로 드래그하면 좋아요(상단 우선 정렬) 처리된다.
  * 이미 좋아요/싫어요된 행을 같은 방향으로 다시 드래그하면 그 상태를 취소한다.
- * 좋아요된 행을 반대쪽(싫어요)으로 드래그하면 좋아요가 해제되고 싫어요로 바뀐다.
- * 싫어요된 행은 반대쪽(좋아요)으로는 드래그되지 않는다 — 취소만 가능하다.
+ * 좋아요된 행을 반대쪽(싫어요)으로, 싫어요된 행을 반대쪽(좋아요)으로 드래그하면
+ * 기존 상태가 해제되면서 반대 상태로 바뀐다.
  * 실제 데이터는 흰 배경의 앞면 레이어(그리드)가 통째로 밀리면서, 뒤에 숨어있던 배경(빨강/파랑 + 아이콘)이 드러난다.
  */
 function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDislike }: TransactionRowProps) {
@@ -36,12 +36,6 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
   const startX = useRef(0)
   const draggable = !!(onSwipeLike || onSwipeDislike)
 
-  const clampDragForState = (v: number) => {
-    const clamped = clampDrag(v)
-    if (disliked) return Math.min(0, clamped)
-    return clamped
-  }
-
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggable) return
     startX.current = e.clientX
@@ -50,9 +44,9 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
 
   useEffect(() => {
     if (!dragging) return
-    const handleMove = (e: PointerEvent) => setDragX(clampDragForState(e.clientX - startX.current))
+    const handleMove = (e: PointerEvent) => setDragX(clampDrag(e.clientX - startX.current))
     const handleUp = (e: PointerEvent) => {
-      const delta = clampDragForState(e.clientX - startX.current)
+      const delta = clampDrag(e.clientX - startX.current)
       setDragging(false)
       if (delta <= -SWIPE_THRESHOLD && onSwipeDislike) {
         setFlyingOut(true)
@@ -82,7 +76,7 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup', handleUp)
     }
-  }, [dragging, onSwipeDislike, onSwipeLike, liked, disliked])
+  }, [dragging, onSwipeDislike, onSwipeLike])
 
   const maxedOut = dragging && Math.abs(dragX) >= MAX_DRAG
 
