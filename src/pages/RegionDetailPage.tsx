@@ -149,7 +149,7 @@ export function RegionDetailPage() {
         </div>
       )}
 
-      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-5 lg:min-h-0">
+      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-start gap-6 px-6 py-6 lg:grid-cols-5 lg:min-h-0">
         <div className="lg:col-span-2 lg:flex lg:flex-col lg:gap-6 lg:min-h-0 lg:overflow-y-auto">
           <div className="h-64 lg:h-64 lg:shrink-0">
             <MapPlaceholder
