@@ -13,6 +13,7 @@ export function ResultsPage() {
   const [hoveredDongCode, setHoveredDongCode] = useState<string | undefined>(undefined)
   const [jiggleMode, setJiggleMode] = useState(false)
   const [excludeTarget, setExcludeTarget] = useState<string | null>(null)
+  const [excludedOpen, setExcludedOpen] = useState(false)
   const workplace = useSearchStore((s) => s.workplace)
   const commuteMode = useSearchStore((s) => s.commuteMode)
   const maxMinutes = useSearchStore((s) => s.maxMinutes)
@@ -53,10 +54,12 @@ export function ResultsPage() {
 
   const dislikedDongCodes = user?.dislikedDongCodes ?? []
   const likedDongCodes = user?.likedDongCodes ?? []
-  const results = (resultsByType[activeDealType] ?? [])
+  const allResults = resultsByType[activeDealType] ?? []
+  const results = allResults
     .filter((r) => !dislikedDongCodes.includes(r.dongCode))
     .slice()
     .sort((a, b) => Number(likedDongCodes.includes(b.dongCode)) - Number(likedDongCodes.includes(a.dongCode)))
+  const excludedResults = allResults.filter((r) => dislikedDongCodes.includes(r.dongCode))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -138,6 +141,45 @@ export function ResultsPage() {
                     />
                   </motion.div>
                 ))}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {excludedResults.length > 0 && (
+            <div className="mt-6">
+              <button
+                onClick={() => setExcludedOpen((v) => !v)}
+                className="flex w-full cursor-pointer items-center gap-3 text-xs text-slate-400 hover:text-slate-600"
+              >
+                <span className="h-px flex-1 bg-slate-200" />
+                <span className="shrink-0 font-medium">
+                  싫어요 한 지역 ({excludedResults.length}) {excludedOpen ? '△' : '▽'}
+                </span>
+                <span className="h-px flex-1 bg-slate-200" />
+              </button>
+              <AnimatePresence initial={false}>
+                {excludedOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="grid grid-cols-1 gap-3 pt-4 sm:grid-cols-2">
+                      {excludedResults.map((r) => (
+                        <RegionCard
+                          key={r.dongCode}
+                          region={r}
+                          dealType={activeDealType}
+                          onClick={() => navigate(`/results/${r.dongCode}`)}
+                          excluded
+                          onToggleExclude={() => toggleDislike(r.dongCode)}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
           )}

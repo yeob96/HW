@@ -20,6 +20,9 @@ interface RegionCardProps {
   onLongPressStart?: () => void
   /** 흔들기 모드에서 X 배지나 카드 자체를 눌렀을 때 — 싫어요(제외) 확인을 띄워달라는 요청 */
   onRequestExclude?: () => void
+  /** 이미 검색 제외된 지역 목록에서 보여줄 때 — 톤을 죽이고, 하트 대신 "제외 해제" 버튼을 보여준다 */
+  excluded?: boolean
+  onToggleExclude?: () => void
 }
 
 export function RegionCard({
@@ -35,6 +38,8 @@ export function RegionCard({
   jiggleVariant = 'a',
   onLongPressStart,
   onRequestExclude,
+  excluded,
+  onToggleExclude,
 }: RegionCardProps) {
   const priceLabel =
     dealType === '매매'
@@ -92,11 +97,13 @@ export function RegionCard({
       className={[
         'relative w-full cursor-pointer touch-manipulation rounded-lg border p-4 text-left transition-all select-none',
         jiggling ? (jiggleVariant === 'a' ? 'jiggle-a' : 'jiggle-b') : '',
-        selected
-          ? 'border-slate-900 bg-slate-50'
-          : liked
-            ? 'border-pink-300 bg-white hover:border-pink-400 hover:shadow-[0_0_0_3px_rgba(244,114,182,0.15)]'
-            : 'border-slate-200 bg-white hover:border-emerald-400 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.12)]',
+        excluded
+          ? 'border-slate-200 bg-slate-50 opacity-70 hover:opacity-100'
+          : selected
+            ? 'border-slate-900 bg-slate-50'
+            : liked
+              ? 'border-pink-300 bg-white hover:border-pink-400 hover:shadow-[0_0_0_3px_rgba(244,114,182,0.15)]'
+              : 'border-slate-200 bg-white hover:border-emerald-400 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.12)]',
       ].join(' ')}
     >
       {jiggling && (
@@ -121,21 +128,33 @@ export function RegionCard({
       <p className="mt-1 text-sm text-slate-500">평균 {priceLabel}</p>
       <div className="mt-2 flex items-end justify-between">
         <p className="text-xs text-slate-400">최근 거래 {region.transactionCount}건</p>
-        {onToggleLike && (
+        {onToggleExclude ? (
           <button
             onClick={(e) => {
               e.stopPropagation()
-              onToggleLike()
+              onToggleExclude()
             }}
-            aria-label={liked ? '좋아요 취소' : '좋아요'}
-            className="cursor-pointer text-lg leading-none"
+            className="cursor-pointer rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-500 hover:border-slate-400 hover:text-slate-700"
           >
-            {liked ? (
-              <span className="text-red-500">♥</span>
-            ) : (
-              <span className="text-slate-300 hover:text-slate-400">♡</span>
-            )}
+            제외 해제
           </button>
+        ) : (
+          onToggleLike && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleLike()
+              }}
+              aria-label={liked ? '좋아요 취소' : '좋아요'}
+              className="cursor-pointer text-lg leading-none"
+            >
+              {liked ? (
+                <span className="text-red-500">♥</span>
+              ) : (
+                <span className="text-slate-300 hover:text-slate-400">♡</span>
+              )}
+            </button>
+          )
         )}
       </div>
     </div>
