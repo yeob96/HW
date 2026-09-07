@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { BannerAdPlaceholder } from '../components/BannerAdPlaceholder'
 import { MapPlaceholder } from '../components/MapPlaceholder'
-import { PriceTrendChart } from '../components/PriceTrendChart'
 import { TransactionTable } from '../components/TransactionTable'
 import { ALL_PROPERTY_TYPES, PROPERTY_TYPE_STYLES } from '../data/dealTypeRanges'
-import { filterTransactions, generateTransactions, getPriceTrend } from '../data/mockTransactions'
+import { filterTransactions, generateTransactions } from '../data/mockTransactions'
 import { useAuthStore, useCurrentUser } from '../store/authStore'
 import { useSearchStore } from '../store/searchStore'
 import type { PropertyType } from '../types'
@@ -45,10 +45,6 @@ export function RegionDetailPage() {
   const budget = budgets[activeDealType]
   const transactions = useMemo(
     () => (region ? filterTransactions(generateTransactions(region, activeDealType, 40), budget) : []),
-    [region, activeDealType, budget],
-  )
-  const trend = useMemo(
-    () => (region ? getPriceTrend(region, activeDealType, budget) : []),
     [region, activeDealType, budget],
   )
   const dislikedTransactionIds = user?.dislikedTransactionIds ?? EMPTY_IDS
@@ -186,10 +182,7 @@ export function RegionDetailPage() {
           </div>
 
           <div className="mt-6 lg:mt-6">
-            <h2 className="mb-3 text-sm font-medium text-slate-700">가격 추이 (최근 12개월)</h2>
-            <div className="rounded-lg border border-slate-200 p-4">
-              <PriceTrendChart data={trend} />
-            </div>
+            <BannerAdPlaceholder regionName={region.regionName} />
           </div>
         </div>
 
