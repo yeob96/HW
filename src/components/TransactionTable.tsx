@@ -192,7 +192,7 @@ function AdRow({ title, regionName }: { title: string; regionName: string }) {
   return (
     <div
       role="row"
-      className={`grid ${GRID_COLS} items-center border-t border-amber-100 bg-amber-50/60 text-slate-700`}
+      className={`grid ${GRID_COLS} items-center border-t border-amber-100 bg-amber-50 text-slate-700`}
     >
       <div role="cell" className="px-4 py-2.5">
         <div className="flex items-center gap-1.5 font-medium text-slate-900">
