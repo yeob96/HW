@@ -150,8 +150,8 @@ export function RegionDetailPage() {
       )}
 
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-5 lg:min-h-0">
-        <div className="lg:col-span-2 lg:space-y-6 lg:min-h-0 lg:overflow-y-auto">
-          <div className="h-64 lg:h-64">
+        <div className="lg:col-span-2 lg:flex lg:flex-col lg:gap-6 lg:min-h-0 lg:overflow-y-auto">
+          <div className="h-64 lg:h-64 lg:shrink-0">
             <MapPlaceholder
               workplace={workplace}
               regions={resultsByType[activeDealType] ?? []}
@@ -160,7 +160,7 @@ export function RegionDetailPage() {
             />
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3 lg:mt-0">
+          <div className="mt-6 grid grid-cols-2 gap-3 lg:mt-0 lg:shrink-0">
             <div className="rounded-lg border border-slate-200 p-4">
               <p className="text-xs text-slate-400">평균 {activeDealType === '매매' ? '매매가' : activeDealType === '전세' ? '보증금' : '월세'}</p>
               <p className="mt-1 text-base font-semibold text-slate-900">{priceLabel}</p>
@@ -181,7 +181,7 @@ export function RegionDetailPage() {
             </div>
           </div>
 
-          <div className="mt-6 lg:mt-6">
+          <div className="mt-6 lg:mt-0 lg:min-h-0 lg:flex-1">
             <BannerAdPlaceholder regionName={region.regionName} />
           </div>
         </div>

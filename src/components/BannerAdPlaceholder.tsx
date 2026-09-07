@@ -8,7 +8,7 @@ interface BannerAdPlaceholderProps {
  */
 export function BannerAdPlaceholder({ regionName }: BannerAdPlaceholderProps) {
   return (
-    <div className="flex h-64 w-full flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+    <div className="flex h-64 w-full flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center lg:h-full">
       <span className="mb-3 rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-slate-500">
         AD
       </span>
