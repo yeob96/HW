@@ -4,6 +4,8 @@ import { useAuthStore } from '../store/authStore'
 interface AuthModalProps {
   open: boolean
   onClose: () => void
+  /** 로그인이 필요한 기능을 시도하다 열린 경우, 상단에 보여줄 안내 문구 */
+  message?: string
 }
 
 type Mode = 'login' | 'signup' | 'signupDone'
@@ -11,7 +13,7 @@ type Mode = 'login' | 'signup' | 'signupDone'
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400'
 
-export function AuthModal({ open, onClose }: AuthModalProps) {
+export function AuthModal({ open, onClose, message }: AuthModalProps) {
   const login = useAuthStore((s) => s.login)
   const signup = useAuthStore((s) => s.signup)
 
@@ -128,6 +130,10 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
         ].join(' ')}
         onClick={(e) => e.stopPropagation()}
       >
+        {message && mode !== 'signupDone' && (
+          <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">{message}</p>
+        )}
+
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">
             {mode === 'signupDone' ? '회원가입 완료' : mode === 'signup' ? '회원가입' : '로그인'}

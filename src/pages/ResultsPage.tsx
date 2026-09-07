@@ -7,6 +7,7 @@ import { MapPlaceholder } from '../components/MapPlaceholder'
 import { RegionCard } from '../components/RegionCard'
 import { useAuthStore, useCurrentUser } from '../store/authStore'
 import { useSearchStore } from '../store/searchStore'
+import { AUTH_REQUIRED_MESSAGE, useUiStore } from '../store/uiStore'
 
 const AD_POPUP_HIDE_KEY = 'hw-ad-popup-hide-until'
 const todayStr = () => new Date().toISOString().slice(0, 10)
@@ -31,6 +32,14 @@ export function ResultsPage() {
   const user = useCurrentUser()
   const toggleLike = useAuthStore((s) => s.toggleLike)
   const toggleDislike = useAuthStore((s) => s.toggleDislike)
+  const openAuthModal = useUiStore((s) => s.openAuthModal)
+  const requireAuth = (fn: () => void) => () => {
+    if (!user) {
+      openAuthModal(AUTH_REQUIRED_MESSAGE)
+      return
+    }
+    fn()
+  }
 
   useEffect(() => {
     if (!hasSearched) navigate('/', { replace: true })
@@ -138,11 +147,11 @@ export function ResultsPage() {
                       onClick={() => navigate(`/results/${r.dongCode}`)}
                       onMouseEnter={() => setHoveredDongCode(r.dongCode)}
                       onMouseLeave={() => setHoveredDongCode(undefined)}
-                      onToggleLike={user ? () => toggleLike(r.dongCode) : undefined}
+                      onToggleLike={requireAuth(() => toggleLike(r.dongCode))}
                       jiggling={jiggleMode}
                       jiggleVariant={i % 2 === 0 ? 'a' : 'b'}
-                      onLongPressStart={user ? () => setJiggleMode(true) : undefined}
-                      onRequestExclude={user ? () => setExcludeTarget(r.dongCode) : undefined}
+                      onLongPressStart={requireAuth(() => setJiggleMode(true))}
+                      onRequestExclude={requireAuth(() => setExcludeTarget(r.dongCode))}
                     />
                   </motion.div>
                 ))}

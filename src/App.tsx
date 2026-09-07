@@ -6,12 +6,13 @@ import { ProfilePage } from './pages/ProfilePage'
 import { RegionDetailPage } from './pages/RegionDetailPage'
 import { ResultsPage } from './pages/ResultsPage'
 import { useAuthStore, useCurrentUser } from './store/authStore'
+import { useUiStore } from './store/uiStore'
 
 function AuthArea() {
   const navigate = useNavigate()
   const user = useCurrentUser()
   const logout = useAuthStore((s) => s.logout)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const openAuthModal = useUiStore((s) => s.openAuthModal)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -26,15 +27,12 @@ function AuthArea() {
 
   if (!user) {
     return (
-      <>
-        <button
-          onClick={() => setAuthModalOpen(true)}
-          className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-slate-300"
-        >
-          로그인
-        </button>
-        <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-      </>
+      <button
+        onClick={() => openAuthModal()}
+        className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-slate-300"
+      >
+        로그인
+      </button>
     )
   }
 
@@ -74,6 +72,10 @@ function AuthArea() {
 }
 
 function App() {
+  const authModalOpen = useUiStore((s) => s.authModalOpen)
+  const authModalMessage = useUiStore((s) => s.authModalMessage)
+  const closeAuthModal = useUiStore((s) => s.closeAuthModal)
+
   return (
     <>
       <div className="flex items-center justify-between border-b border-slate-100 px-6 py-3">
@@ -88,6 +90,7 @@ function App() {
         <Route path="/results/:dongCode" element={<RegionDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
+      <AuthModal open={authModalOpen} onClose={closeAuthModal} message={authModalMessage} />
     </>
   )
 }

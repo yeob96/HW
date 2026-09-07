@@ -7,6 +7,7 @@ import { ALL_PROPERTY_TYPES, PROPERTY_TYPE_STYLES } from '../data/dealTypeRanges
 import { filterTransactions, generateTransactions } from '../data/mockTransactions'
 import { useAuthStore, useCurrentUser } from '../store/authStore'
 import { useSearchStore } from '../store/searchStore'
+import { AUTH_REQUIRED_MESSAGE, useUiStore } from '../store/uiStore'
 import type { PropertyType } from '../types'
 import { formatManwon } from '../utils/format'
 
@@ -32,6 +33,14 @@ export function RegionDetailPage() {
   const toggleDislike = useAuthStore((s) => s.toggleDislike)
   const toggleLikeTransaction = useAuthStore((s) => s.toggleLikeTransaction)
   const toggleDislikeTransaction = useAuthStore((s) => s.toggleDislikeTransaction)
+  const openAuthModal = useUiStore((s) => s.openAuthModal)
+  const requireAuth = (fn: () => void) => () => {
+    if (!user) {
+      openAuthModal(AUTH_REQUIRED_MESSAGE)
+      return
+    }
+    fn()
+  }
 
   useEffect(() => {
     if (!hasSearched) navigate('/', { replace: true })
@@ -83,40 +92,36 @@ export function RegionDetailPage() {
           </span>
           <h1 className="flex items-center gap-1.5 text-lg font-semibold text-slate-900">
             {region.regionName}
-            {user && (
+            <button
+              onClick={requireAuth(() => toggleLike(region.dongCode))}
+              aria-label={user?.likedDongCodes.includes(region.dongCode) ? '좋아요 취소' : '좋아요'}
+              className="cursor-pointer text-base leading-none"
+            >
+              {user?.likedDongCodes.includes(region.dongCode) ? (
+                <span className="text-red-500">♥</span>
+              ) : (
+                <span className="text-slate-300 hover:text-slate-400">♡</span>
+              )}
+            </button>
+          </h1>
+          <div className="ml-auto flex items-center gap-1.5">
+            {user?.dislikedDongCodes.includes(region.dongCode) ? (
               <button
-                onClick={() => toggleLike(region.dongCode)}
-                aria-label={user.likedDongCodes.includes(region.dongCode) ? '좋아요 취소' : '좋아요'}
-                className="cursor-pointer text-base leading-none"
+                onClick={requireAuth(() => toggleDislike(region.dongCode))}
+                className="cursor-pointer rounded-full border border-blue-600 bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700"
               >
-                {user.likedDongCodes.includes(region.dongCode) ? (
-                  <span className="text-red-500">♥</span>
-                ) : (
-                  <span className="text-slate-300 hover:text-slate-400">♡</span>
-                )}
+                제외 해제
+              </button>
+            ) : (
+              <button
+                onClick={requireAuth(() => setConfirmingExclude(true))}
+                className="cursor-pointer rounded-full border border-blue-600 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+              >
+                <span className="sm:hidden">제외</span>
+                <span className="hidden sm:inline">해당지역 검색 제외 하기</span>
               </button>
             )}
-          </h1>
-          {user && (
-            <div className="ml-auto flex items-center gap-1.5">
-              {user.dislikedDongCodes.includes(region.dongCode) ? (
-                <button
-                  onClick={() => toggleDislike(region.dongCode)}
-                  className="cursor-pointer rounded-full border border-blue-600 bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700"
-                >
-                  제외 해제
-                </button>
-              ) : (
-                <button
-                  onClick={() => setConfirmingExclude(true)}
-                  className="cursor-pointer rounded-full border border-blue-600 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
-                >
-                  <span className="sm:hidden">제외</span>
-                  <span className="hidden sm:inline">해당지역 검색 제외 하기</span>
-                </button>
-              )}
-            </div>
-          )}
+          </div>
         </div>
       </header>
 
@@ -224,6 +229,7 @@ export function RegionDetailPage() {
             dislikedIds={user?.dislikedTransactionIds}
             onToggleLike={user ? toggleLikeTransaction : undefined}
             onToggleDislike={user ? toggleDislikeTransaction : undefined}
+            onRequireAuth={user ? undefined : () => openAuthModal(AUTH_REQUIRED_MESSAGE)}
           />
         </div>
       </main>
