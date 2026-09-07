@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { AdPopupModal } from '../components/AdPopupModal'
 import { ConditionModal } from '../components/ConditionModal'
 import { MapPlaceholder } from '../components/MapPlaceholder'
 import { RegionCard } from '../components/RegionCard'
 import { useAuthStore, useCurrentUser } from '../store/authStore'
 import { useSearchStore } from '../store/searchStore'
+
+const AD_POPUP_HIDE_KEY = 'hw-ad-popup-hide-until'
+const todayStr = () => new Date().toISOString().slice(0, 10)
 
 export function ResultsPage() {
   const navigate = useNavigate()
@@ -14,6 +18,7 @@ export function ResultsPage() {
   const [jiggleMode, setJiggleMode] = useState(false)
   const [excludeTarget, setExcludeTarget] = useState<string | null>(null)
   const [excludedOpen, setExcludedOpen] = useState(false)
+  const [adPopupOpen, setAdPopupOpen] = useState(() => localStorage.getItem(AD_POPUP_HIDE_KEY) !== todayStr())
   const workplace = useSearchStore((s) => s.workplace)
   const commuteMode = useSearchStore((s) => s.commuteMode)
   const maxMinutes = useSearchStore((s) => s.maxMinutes)
@@ -153,7 +158,7 @@ export function ResultsPage() {
               >
                 <span className="h-px flex-1 bg-slate-200" />
                 <span className="shrink-0 font-medium">
-                  싫어요 한 지역 ({excludedResults.length}) {excludedOpen ? '△' : '▽'}
+                  검색제외 한 지역 ({excludedResults.length}) {excludedOpen ? '△' : '▽'}
                 </span>
                 <span className="h-px flex-1 bg-slate-200" />
               </button>
@@ -187,6 +192,16 @@ export function ResultsPage() {
       </main>
 
       <ConditionModal open={conditionModalOpen} onClose={() => setConditionModalOpen(false)} />
+
+      {adPopupOpen && (
+        <AdPopupModal
+          onClose={() => setAdPopupOpen(false)}
+          onHideToday={() => {
+            localStorage.setItem(AD_POPUP_HIDE_KEY, todayStr())
+            setAdPopupOpen(false)
+          }}
+        />
+      )}
 
       {excludeTarget && (
         <div
