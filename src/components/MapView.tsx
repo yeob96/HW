@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { AttributionControl, Map as MapLibreMap, NavigationControl, ScaleControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
@@ -35,6 +35,9 @@ const COLORED_AREA_LAYER_IDS = [
   'landuse_residential', // 시가지/주거지 음영 — 축소했을 때 보이던 회색 얼룩의 정체
   'aeroway_fill',
 ]
+
+// building-3d 레이어의 minzoom과 동일 — 이 zoom부터 건물이 입체로 표시될 수 있다
+const BUILDING_3D_MIN_ZOOM = 14
 
 const FILTERS = ['매매', '유형', '평형', '가격']
 
@@ -76,6 +79,8 @@ export function MapView() {
   const [tab, setTab] = useState<'단지' | '매물'>('단지')
   const [activeCategoryTab, setActiveCategoryTab] = useState<string | null>(null)
   const [activeChip, setActiveChip] = useState<string | null>(null)
+  const [show3DToggle, setShow3DToggle] = useState(false)
+  const [buildings3DOn, setBuildings3DOn] = useState(true)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -130,6 +135,16 @@ export function MapView() {
       }
       applyZoomDependentStyle()
       map.on('zoom', applyZoomDependentStyle)
+
+      let toggleVisible = false
+      const checkBuilding3DToggleVisibility = () => {
+        const inRange = map.getZoom() >= BUILDING_3D_MIN_ZOOM
+        if (inRange === toggleVisible) return
+        toggleVisible = inRange
+        setShow3DToggle(inRange)
+      }
+      checkBuilding3DToggleVisibility()
+      map.on('zoom', checkBuilding3DToggleVisibility)
     })
 
     mapRef.current = map
@@ -139,6 +154,21 @@ export function MapView() {
       mapRef.current = null
     }
   }, [])
+
+  const toggleBuildings3D = () => {
+    const map = mapRef.current
+    if (!map) return
+    const next = !buildings3DOn
+    setBuildings3DOn(next)
+    if (next) {
+      map.setLayoutProperty('building-3d', 'visibility', 'visible')
+      map.setLayerZoomRange('building', 13, 14)
+    } else {
+      // 3D를 끄면 입체 대신 평면 건물 채우기를 계속 보여준다
+      map.setLayoutProperty('building-3d', 'visibility', 'none')
+      map.setLayerZoomRange('building', 13, 24)
+    }
+  }
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -231,13 +261,23 @@ export function MapView() {
       {/* right-side icon rail */}
       <div className="absolute right-4 top-4 flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         {SIDE_ICONS.map(({ label, icon }) => (
-          <button
-            key={label}
-            className="flex w-16 cursor-pointer flex-col items-center gap-1 border-b border-slate-100 px-2 py-3 text-[11px] text-slate-500 last:border-b-0 hover:bg-slate-50"
-          >
-            <span className="text-lg">{icon}</span>
-            {label}
-          </button>
+          <Fragment key={label}>
+            {label === '숨김' && show3DToggle && (
+              <button
+                onClick={toggleBuildings3D}
+                className={`flex w-16 cursor-pointer flex-col items-center gap-1 border-b border-slate-100 px-2 py-3 text-[11px] last:border-b-0 hover:bg-slate-50 ${
+                  buildings3DOn ? 'text-indigo-600' : 'text-slate-400'
+                }`}
+              >
+                <span className="text-sm font-bold leading-none">3D</span>
+                <span className="leading-none">{buildings3DOn ? '(On)' : '(Off)'}</span>
+              </button>
+            )}
+            <button className="flex w-16 cursor-pointer flex-col items-center gap-1 border-b border-slate-100 px-2 py-3 text-[11px] text-slate-500 last:border-b-0 hover:bg-slate-50">
+              <span className="text-lg">{icon}</span>
+              {label}
+            </button>
+          </Fragment>
         ))}
       </div>
 
