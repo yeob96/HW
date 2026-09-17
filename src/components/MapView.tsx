@@ -6,6 +6,21 @@ const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 const DEFAULT_CENTER: [number, number] = [127.1086, 37.3606] // 성남시 분당구 정자동
 const DEFAULT_ZOOM = 15
 
+// 좌하단 축척이 "5 km"로 표시되는 지점(이 위도 기준 zoom 약 10.25~10.5 사이)부터 도로를 숨긴다
+const ROAD_HIDE_MAX_ZOOM = 10.3
+// 시/군/구 경계선(admin_level 3~6)의 기본 스타일과, 도로가 숨겨졌을 때 더 도드라지게 보여줄 스타일
+const CITY_BOUNDARY_LAYER = 'boundary_3'
+const CITY_BOUNDARY_DEFAULT_PAINT = {
+  'line-color': 'hsl(0, 0%, 70%)',
+  'line-dasharray': [1, 1],
+  'line-width': ['interpolate', ['linear', 1], ['zoom'], 7, 1, 11, 2],
+}
+const CITY_BOUNDARY_EMPHASIZED_PAINT = {
+  'line-color': '#64748b',
+  'line-dasharray': [2, 1.5],
+  'line-width': 1.6,
+}
+
 const FILTERS = ['매매', '유형', '평형', '가격']
 
 const CATEGORY_TABS = ['분양', '이야기', '재건축', '경매', '뉴스', '오늘']
@@ -63,6 +78,7 @@ export function MapView() {
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
 
     map.on('load', () => {
+      const roadLayerIds: string[] = []
       for (const layer of map.getStyle()?.layers ?? []) {
         if (/shield|highway-name/i.test(layer.id)) {
           map.setLayoutProperty(layer.id, 'visibility', 'none')
@@ -73,7 +89,27 @@ export function MapView() {
           // 지명 라벨을 "영문\n한글" 대신 한글(nonlatin)만 표시하도록 덮어쓴다
           map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name:nonlatin'], ['get', 'name']])
         }
+        if (layer.type === 'line' && /^(road|bridge|tunnel)_/.test(layer.id) && !/rail/i.test(layer.id)) {
+          roadLayerIds.push(layer.id)
+        }
       }
+
+      let roadsHidden = false
+      const applyZoomDependentStyle = () => {
+        const shouldHideRoads = map.getZoom() <= ROAD_HIDE_MAX_ZOOM
+        if (shouldHideRoads === roadsHidden) return
+        roadsHidden = shouldHideRoads
+
+        const roadVisibility = shouldHideRoads ? 'none' : 'visible'
+        for (const id of roadLayerIds) map.setLayoutProperty(id, 'visibility', roadVisibility)
+
+        const boundaryPaint = shouldHideRoads ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
+        for (const [prop, value] of Object.entries(boundaryPaint)) {
+          map.setPaintProperty(CITY_BOUNDARY_LAYER, prop, value)
+        }
+      }
+      applyZoomDependentStyle()
+      map.on('zoom', applyZoomDependentStyle)
     })
 
     mapRef.current = map
