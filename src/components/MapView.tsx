@@ -62,6 +62,12 @@ export function MapView() {
     map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left')
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
 
+    map.on('load', () => {
+      for (const layer of map.getStyle()?.layers ?? []) {
+        if (/shield/i.test(layer.id)) map.setLayoutProperty(layer.id, 'visibility', 'none')
+      }
+    })
+
     mapRef.current = map
 
     return () => {
