@@ -140,6 +140,10 @@ export function MapView() {
         'billiards',
         'escape_game',
         'bicycle_rental',
+        'information',
+        'shelter',
+        'viewpoint',
+        'parking',
       ]
       for (const id of ['poi_r1', 'poi_r7', 'poi_r20', 'poi_transit']) {
         const filter = map.getFilter(id)
