@@ -176,8 +176,8 @@ export function MapView() {
       }
 
       // 고속도로/국도/간선·보조간선(원래 주황·노란색)을 항상 어두운 회색으로 표시한다
-      const DARK_GRAY_ROAD_COLOR = '#94a3b8'
-      const DARK_GRAY_ROAD_CASING_COLOR = '#64748b'
+      const DARK_GRAY_ROAD_COLOR = '#cbd5e1'
+      const DARK_GRAY_ROAD_CASING_COLOR = '#94a3b8'
       for (const id of [...motorwayLayerIds, ...yellowRoadLayerIds]) {
         const color = /_casing$/.test(id) ? DARK_GRAY_ROAD_CASING_COLOR : DARK_GRAY_ROAD_COLOR
         map.setPaintProperty(id, 'line-color', color)
