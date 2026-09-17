@@ -6,7 +6,9 @@ const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 const DEFAULT_CENTER: [number, number] = [127.1086, 37.3606] // 성남시 분당구 정자동
 const DEFAULT_ZOOM = 15
 
-// 좌하단 축척이 "3 km"로 표시되는 지점(zoom 약 11)부터 산/색 있는 영역과 일반(노란) 도로를 숨긴다
+// 좌하단 축척이 "1 km"로 표시되는 지점(zoom 약 12.6)부터 산지 등 색 있는 영역을 숨긴다
+const GREEN_HIDE_MAX_ZOOM = 12.6
+// 좌하단 축척이 "3 km"로 표시되는 지점(zoom 약 11)부터 일반(노란) 도로를 숨긴다
 const MID_ZOOM_MAX = 11.1
 // 좌하단 축척이 "5 km"로 표시되는 지점(이 위도 기준 zoom 약 10.25~10.5 사이)부터는 고속도로/철도/건물까지 숨긴다
 const ROAD_HIDE_MAX_ZOOM = 10.3
@@ -22,7 +24,7 @@ const CITY_BOUNDARY_EMPHASIZED_PAINT = {
   'line-dasharray': [1, 0], // gap 0 → 점선이 아닌 얇은 실선으로 보인다
   'line-width': 1,
 }
-// 3km 기준으로 산지/숲/공원/공동묘지/학교/운동장/주거지 등의 색이 있는 영역을 숨겨서
+// 1km 기준으로 산지/숲/공원/공동묘지/학교/운동장/주거지 등의 색이 있는 영역을 숨겨서
 // 평지와 구분 없이 보이게 한다 (배경색 #f8f4f0이 그대로 드러나 밝은 회색 계열 평지처럼 보인다)
 const COLORED_AREA_LAYER_IDS = [
   'landcover_wood',
@@ -174,25 +176,32 @@ export function MapView() {
       }
 
       // 고속도로/국도/간선·보조간선(원래 주황·노란색)을 항상 어두운 회색으로 표시한다
-      const DARK_GRAY_ROAD_COLOR = '#4b5563'
-      const DARK_GRAY_ROAD_CASING_COLOR = '#334155'
+      const DARK_GRAY_ROAD_COLOR = '#555f6d'
+      const DARK_GRAY_ROAD_CASING_COLOR = '#3d4b5f'
       for (const id of [...motorwayLayerIds, ...yellowRoadLayerIds]) {
         const color = /_casing$/.test(id) ? DARK_GRAY_ROAD_CASING_COLOR : DARK_GRAY_ROAD_COLOR
         map.setPaintProperty(id, 'line-color', color)
       }
 
+      let greenHidden = false
       let midTierHidden = false
       let roadsHidden = false
       const applyZoomDependentStyle = () => {
         const zoom = map.getZoom()
+        const shouldHideGreen = zoom <= GREEN_HIDE_MAX_ZOOM
         const shouldHideMidTier = zoom <= MID_ZOOM_MAX
         const shouldHideRoads = zoom <= ROAD_HIDE_MAX_ZOOM
+
+        if (shouldHideGreen !== greenHidden) {
+          greenHidden = shouldHideGreen
+          const visibility = shouldHideGreen ? 'none' : 'visible'
+          for (const id of COLORED_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', visibility)
+        }
 
         if (shouldHideMidTier !== midTierHidden) {
           midTierHidden = shouldHideMidTier
           const visibility = shouldHideMidTier ? 'none' : 'visible'
           for (const id of yellowRoadLayerIds) map.setLayoutProperty(id, 'visibility', visibility)
-          for (const id of COLORED_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', visibility)
         }
 
         if (shouldHideRoads !== roadsHidden) {
