@@ -91,7 +91,8 @@ export function MapView() {
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
 
     map.on('load', () => {
-      const roadLayerIds: string[] = []
+      // 도로/철도(선), 건물(면)을 축소 시 함께 숨길 대상으로 모은다
+      const hideOnZoomOutLayerIds: string[] = []
       for (const layer of map.getStyle()?.layers ?? []) {
         if (/shield|highway-name/i.test(layer.id)) {
           map.setLayoutProperty(layer.id, 'visibility', 'none')
@@ -102,8 +103,11 @@ export function MapView() {
           // 지명 라벨을 "영문\n한글" 대신 한글(nonlatin)만 표시하도록 덮어쓴다
           map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name:nonlatin'], ['get', 'name']])
         }
-        if (layer.type === 'line' && /^(road|bridge|tunnel)_/.test(layer.id) && !/rail/i.test(layer.id)) {
-          roadLayerIds.push(layer.id)
+        if (layer.type === 'line' && /^(road|bridge|tunnel)_/.test(layer.id)) {
+          hideOnZoomOutLayerIds.push(layer.id)
+        }
+        if ((layer.type === 'fill' || layer.type === 'fill-extrusion') && /^building/.test(layer.id)) {
+          hideOnZoomOutLayerIds.push(layer.id)
         }
       }
 
@@ -113,9 +117,9 @@ export function MapView() {
         if (shouldHideRoads === roadsHidden) return
         roadsHidden = shouldHideRoads
 
-        const roadVisibility = shouldHideRoads ? 'none' : 'visible'
-        for (const id of roadLayerIds) map.setLayoutProperty(id, 'visibility', roadVisibility)
-        for (const id of GREEN_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', roadVisibility)
+        const hiddenVisibility = shouldHideRoads ? 'none' : 'visible'
+        for (const id of hideOnZoomOutLayerIds) map.setLayoutProperty(id, 'visibility', hiddenVisibility)
+        for (const id of GREEN_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', hiddenVisibility)
 
         const boundaryPaint = shouldHideRoads ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
         for (const [prop, value] of Object.entries(boundaryPaint)) {
