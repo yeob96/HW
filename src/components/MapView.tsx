@@ -170,7 +170,9 @@ export function MapView() {
           if (isYellowRoad) yellowRoadLayerIds.push(layer.id)
           else hideAt5kmLayerIds.push(layer.id)
         }
-        if ((layer.type === 'fill' || layer.type === 'fill-extrusion') && /^building/.test(layer.id)) {
+        if (layer.type === 'fill' && layer.id === 'building') {
+          // building-3d는 여기 포함하지 않는다 — 3D on/off 토글이 그 visibility를 독립적으로 관리하는데,
+          // 여기 포함시키면 5km 밖으로 나갔다 들어올 때 무조건 'visible'로 되돌려써서 토글 상태를 무시해버린다
           hideAt5kmLayerIds.push(layer.id)
         }
       }
