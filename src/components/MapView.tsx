@@ -20,9 +20,9 @@ const CITY_BOUNDARY_EMPHASIZED_PAINT = {
   'line-dasharray': [2, 1.5],
   'line-width': 1.6,
 }
-// 도로를 숨길 때 산지/숲/공원/공동묘지/학교/운동장 등의 초록색 계열도 함께 숨겨서 평지와 구분 없이 보이게 한다
-// (배경색 #f8f4f0이 그대로 드러나 밝은 회색 계열 평지처럼 보인다)
-const GREEN_AREA_LAYER_IDS = [
+// 도로를 숨길 때 산지/숲/공원/공동묘지/학교/운동장/주거지 등의 색이 있는 영역도 함께 숨겨서
+// 평지와 구분 없이 보이게 한다 (배경색 #f8f4f0이 그대로 드러나 밝은 회색 계열 평지처럼 보인다)
+const COLORED_AREA_LAYER_IDS = [
   'landcover_wood',
   'landcover_grass',
   'park',
@@ -32,6 +32,8 @@ const GREEN_AREA_LAYER_IDS = [
   'landuse_track',
   'landuse_school',
   'landcover_wetland',
+  'landuse_residential', // 시가지/주거지 음영 — 축소했을 때 보이던 회색 얼룩의 정체
+  'aeroway_fill',
 ]
 
 const FILTERS = ['매매', '유형', '평형', '가격']
@@ -119,7 +121,7 @@ export function MapView() {
 
         const hiddenVisibility = shouldHideRoads ? 'none' : 'visible'
         for (const id of hideOnZoomOutLayerIds) map.setLayoutProperty(id, 'visibility', hiddenVisibility)
-        for (const id of GREEN_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', hiddenVisibility)
+        for (const id of COLORED_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', hiddenVisibility)
 
         const boundaryPaint = shouldHideRoads ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
         for (const [prop, value] of Object.entries(boundaryPaint)) {
