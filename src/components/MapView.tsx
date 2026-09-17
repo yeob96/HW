@@ -20,6 +20,9 @@ const CITY_BOUNDARY_EMPHASIZED_PAINT = {
   'line-dasharray': [2, 1.5],
   'line-width': 1.6,
 }
+// 도로를 숨길 때 산지/숲/공원의 초록색도 함께 숨겨서 평지와 구분 없이 보이게 한다
+// (배경색 #f8f4f0이 그대로 드러나 밝은 회색 계열 평지처럼 보인다)
+const GREEN_AREA_LAYER_IDS = ['landcover_wood', 'landcover_grass', 'park', 'park_outline']
 
 const FILTERS = ['매매', '유형', '평형', '가격']
 
@@ -102,6 +105,7 @@ export function MapView() {
 
         const roadVisibility = shouldHideRoads ? 'none' : 'visible'
         for (const id of roadLayerIds) map.setLayoutProperty(id, 'visibility', roadVisibility)
+        for (const id of GREEN_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', roadVisibility)
 
         const boundaryPaint = shouldHideRoads ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
         for (const [prop, value] of Object.entries(boundaryPaint)) {
