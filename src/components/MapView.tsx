@@ -102,6 +102,10 @@ export function MapView() {
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
 
     map.on('load', () => {
+      // "위례신도시"(suburb), "헌인마을"(hamlet) 등 시/군/구보다 작은 동네 이름은
+      // label_other 레이어(도시/국가/주/읍면동/촌락 등 큰 단위를 제외한 나머지)에서 나온다
+      map.setLayoutProperty('label_other', 'visibility', 'none')
+
       // 학교/관공서/보건소 등 주요시설은 남기고, 상가(각종 상점/식당/카페 등)와 버스정류장만 숨긴다
       const HIDDEN_POI_CLASSES = [
         'shop',
