@@ -64,7 +64,15 @@ export function MapView() {
 
     map.on('load', () => {
       for (const layer of map.getStyle()?.layers ?? []) {
-        if (/shield|highway-name/i.test(layer.id)) map.setLayoutProperty(layer.id, 'visibility', 'none')
+        if (/shield|highway-name/i.test(layer.id)) {
+          map.setLayoutProperty(layer.id, 'visibility', 'none')
+          continue
+        }
+        const textField = layer.layout?.['text-field']
+        if (Array.isArray(textField) && JSON.stringify(textField).includes('name:nonlatin')) {
+          // 지명 라벨을 "영문\n한글" 대신 한글(nonlatin)만 표시하도록 덮어쓴다
+          map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name:nonlatin'], ['get', 'name']])
+        }
       }
     })
 
