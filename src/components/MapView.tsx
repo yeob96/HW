@@ -43,10 +43,10 @@ const COLORED_AREA_LAYER_IDS = [
 // building-3d 레이어의 minzoom과 동일 — 이 zoom부터 건물이 입체로 표시될 수 있다
 const BUILDING_3D_MIN_ZOOM = 14
 
-// 지도에 10초간 동작이 없으면 도로에 무지개색이 흐르는 LED 효과를 켠다
-const RAINBOW_IDLE_MS = 10000
-const RAINBOW_HUE_CYCLE_MS = 4000
-const RAINBOW_DASH_STEP_MS = 80
+// 지도에 10분간 동작이 없으면 도로에 무지개색이 흐르는 LED 효과를 켠다
+const RAINBOW_IDLE_MS = 10 * 60 * 1000
+const RAINBOW_HUE_CYCLE_MS = 1200
+const RAINBOW_DASH_STEP_MS = 30
 // 대시 패턴을 프레임마다 조금씩 밀어서 빛이 이동하는 것처럼 보이게 하는 시퀀스
 const RAINBOW_DASH_SEQUENCE = [
   [0, 4, 3],
