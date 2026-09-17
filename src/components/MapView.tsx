@@ -127,6 +127,22 @@ export function MapView() {
         }
       }
 
+      // 하천 데이터가 강/천 구분 없이 모두 class: river로 들어와 있어, 이름 끝 글자가
+      // "천"으로 끝나는 것만 라벨을 숨기고 "강"으로 끝나는 이름(한강 등)은 남긴다
+      const waterwayLabelFilter = map.getFilter('waterway_line_label')
+      if (waterwayLabelFilter) {
+        map.setFilter('waterway_line_label', [
+          'all',
+          waterwayLabelFilter,
+          [
+            'case',
+            ['has', 'name'],
+            ['!=', ['slice', ['get', 'name'], ['-', ['length', ['get', 'name']], 1]], '천'],
+            true,
+          ],
+        ])
+      }
+
       // 도로/철도(선), 건물(면)을 축소 시 함께 숨길 대상으로 모은다
       const hideOnZoomOutLayerIds: string[] = []
       for (const layer of map.getStyle()?.layers ?? []) {
