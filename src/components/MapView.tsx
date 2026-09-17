@@ -6,7 +6,9 @@ const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 const DEFAULT_CENTER: [number, number] = [127.1086, 37.3606] // 성남시 분당구 정자동
 const DEFAULT_ZOOM = 15
 
-// 좌하단 축척이 "5 km"로 표시되는 지점(이 위도 기준 zoom 약 10.25~10.5 사이)부터 도로를 숨긴다
+// 좌하단 축척이 "3 km"로 표시되는 지점(zoom 약 11)부터 산/색 있는 영역과 일반(노란) 도로를 숨긴다
+const MID_ZOOM_MAX = 11.1
+// 좌하단 축척이 "5 km"로 표시되는 지점(이 위도 기준 zoom 약 10.25~10.5 사이)부터는 고속도로/철도/건물까지 숨긴다
 const ROAD_HIDE_MAX_ZOOM = 10.3
 // 시/군/구 경계선(admin_level 3~6)의 기본 스타일과, 도로가 숨겨졌을 때 더 도드라지게 보여줄 스타일
 const CITY_BOUNDARY_LAYER = 'boundary_3'
@@ -20,7 +22,7 @@ const CITY_BOUNDARY_EMPHASIZED_PAINT = {
   'line-dasharray': [1, 0], // gap 0 → 점선이 아닌 얇은 실선으로 보인다
   'line-width': 1,
 }
-// 도로를 숨길 때 산지/숲/공원/공동묘지/학교/운동장/주거지 등의 색이 있는 영역도 함께 숨겨서
+// 3km 기준으로 산지/숲/공원/공동묘지/학교/운동장/주거지 등의 색이 있는 영역을 숨겨서
 // 평지와 구분 없이 보이게 한다 (배경색 #f8f4f0이 그대로 드러나 밝은 회색 계열 평지처럼 보인다)
 const COLORED_AREA_LAYER_IDS = [
   'landcover_wood',
@@ -143,8 +145,11 @@ export function MapView() {
         ])
       }
 
-      // 도로/철도(선), 건물(면)을 축소 시 함께 숨길 대상으로 모은다
-      const hideOnZoomOutLayerIds: string[] = []
+      // 도로/철도(선), 건물(면)을 두 단계로 나눠 모은다
+      // - yellowRoadLayerIds: 고속도로(motorway)를 제외한 일반 도로(국도/간선/링크) — 3km부터 숨김
+      // - hideAt5kmLayerIds: 고속도로, 철도, 건물 — 5km부터 숨김 (더 축소해야 사라짐)
+      const yellowRoadLayerIds: string[] = []
+      const hideAt5kmLayerIds: string[] = []
       for (const layer of map.getStyle()?.layers ?? []) {
         if (/shield|highway-name/i.test(layer.id)) {
           map.setLayoutProperty(layer.id, 'visibility', 'none')
@@ -156,26 +161,39 @@ export function MapView() {
           map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name:nonlatin'], ['get', 'name']])
         }
         if (layer.type === 'line' && /^(road|bridge|tunnel)_/.test(layer.id)) {
-          hideOnZoomOutLayerIds.push(layer.id)
+          const isMotorway = /motorway/.test(layer.id)
+          const isYellowRoad = !isMotorway && (/trunk_primary|secondary_tertiary/.test(layer.id) || /^(road|bridge|tunnel)_link(_casing)?$/.test(layer.id))
+          if (isYellowRoad) yellowRoadLayerIds.push(layer.id)
+          else hideAt5kmLayerIds.push(layer.id)
         }
         if ((layer.type === 'fill' || layer.type === 'fill-extrusion') && /^building/.test(layer.id)) {
-          hideOnZoomOutLayerIds.push(layer.id)
+          hideAt5kmLayerIds.push(layer.id)
         }
       }
 
+      let midTierHidden = false
       let roadsHidden = false
       const applyZoomDependentStyle = () => {
-        const shouldHideRoads = map.getZoom() <= ROAD_HIDE_MAX_ZOOM
-        if (shouldHideRoads === roadsHidden) return
-        roadsHidden = shouldHideRoads
+        const zoom = map.getZoom()
+        const shouldHideMidTier = zoom <= MID_ZOOM_MAX
+        const shouldHideRoads = zoom <= ROAD_HIDE_MAX_ZOOM
 
-        const hiddenVisibility = shouldHideRoads ? 'none' : 'visible'
-        for (const id of hideOnZoomOutLayerIds) map.setLayoutProperty(id, 'visibility', hiddenVisibility)
-        for (const id of COLORED_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', hiddenVisibility)
+        if (shouldHideMidTier !== midTierHidden) {
+          midTierHidden = shouldHideMidTier
+          const visibility = shouldHideMidTier ? 'none' : 'visible'
+          for (const id of yellowRoadLayerIds) map.setLayoutProperty(id, 'visibility', visibility)
+          for (const id of COLORED_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', visibility)
+        }
 
-        const boundaryPaint = shouldHideRoads ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
-        for (const [prop, value] of Object.entries(boundaryPaint)) {
-          map.setPaintProperty(CITY_BOUNDARY_LAYER, prop, value)
+        if (shouldHideRoads !== roadsHidden) {
+          roadsHidden = shouldHideRoads
+          const visibility = shouldHideRoads ? 'none' : 'visible'
+          for (const id of hideAt5kmLayerIds) map.setLayoutProperty(id, 'visibility', visibility)
+
+          const boundaryPaint = shouldHideRoads ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
+          for (const [prop, value] of Object.entries(boundaryPaint)) {
+            map.setPaintProperty(CITY_BOUNDARY_LAYER, prop, value)
+          }
         }
       }
       applyZoomDependentStyle()
