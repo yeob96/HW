@@ -64,7 +64,7 @@ export function MapView() {
 
     map.on('load', () => {
       for (const layer of map.getStyle()?.layers ?? []) {
-        if (/shield/i.test(layer.id)) map.setLayoutProperty(layer.id, 'visibility', 'none')
+        if (/shield|highway-name/i.test(layer.id)) map.setLayoutProperty(layer.id, 'visibility', 'none')
       }
     })
 
