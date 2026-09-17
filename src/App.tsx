@@ -5,6 +5,7 @@ import { InputPage } from './pages/InputPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegionDetailPage } from './pages/RegionDetailPage'
 import { ResultsPage } from './pages/ResultsPage'
+import { TestPage } from './pages/TestPage'
 import { useAuthStore, useCurrentUser } from './store/authStore'
 import { useUiStore } from './store/uiStore'
 
@@ -89,6 +90,7 @@ function App() {
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/results/:dongCode" element={<RegionDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/TEST" element={<TestPage />} />
       </Routes>
       <AuthModal open={authModalOpen} onClose={closeAuthModal} message={authModalMessage} />
     </>
