@@ -150,6 +150,8 @@ export function MapView() {
         if (filter) {
           map.setFilter(id, ['all', filter, ['!', ['in', ['get', 'class'], ['literal', HIDDEN_POI_CLASSES]]]])
         }
+        // 남아있는 POI도 동그라미 아이콘(휠체어 마크 등)은 지우고 이름 글자만 남긴다
+        map.setPaintProperty(id, 'icon-opacity', 0)
       }
 
       // 하천 데이터가 강/천 구분 없이 모두 class: river로 들어와 있어, 이름 끝 글자가
