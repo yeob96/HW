@@ -149,6 +149,7 @@ export function MapView() {
       // - yellowRoadLayerIds: 고속도로(motorway)를 제외한 일반 도로(국도/간선/링크) — 3km부터 숨김
       // - hideAt5kmLayerIds: 고속도로, 철도, 건물 — 5km부터 숨김 (더 축소해야 사라짐)
       const yellowRoadLayerIds: string[] = []
+      const motorwayLayerIds: string[] = []
       const hideAt5kmLayerIds: string[] = []
       for (const layer of map.getStyle()?.layers ?? []) {
         if (/shield|highway-name/i.test(layer.id)) {
@@ -163,12 +164,21 @@ export function MapView() {
         if (layer.type === 'line' && /^(road|bridge|tunnel)_/.test(layer.id)) {
           const isMotorway = /motorway/.test(layer.id)
           const isYellowRoad = !isMotorway && (/trunk_primary|secondary_tertiary/.test(layer.id) || /^(road|bridge|tunnel)_link(_casing)?$/.test(layer.id))
+          if (isMotorway) motorwayLayerIds.push(layer.id)
           if (isYellowRoad) yellowRoadLayerIds.push(layer.id)
           else hideAt5kmLayerIds.push(layer.id)
         }
         if ((layer.type === 'fill' || layer.type === 'fill-extrusion') && /^building/.test(layer.id)) {
           hideAt5kmLayerIds.push(layer.id)
         }
+      }
+
+      // 고속도로/국도/간선·보조간선(원래 주황·노란색)을 항상 어두운 회색으로 표시한다
+      const DARK_GRAY_ROAD_COLOR = '#4b5563'
+      const DARK_GRAY_ROAD_CASING_COLOR = '#334155'
+      for (const id of [...motorwayLayerIds, ...yellowRoadLayerIds]) {
+        const color = /_casing$/.test(id) ? DARK_GRAY_ROAD_CASING_COLOR : DARK_GRAY_ROAD_COLOR
+        map.setPaintProperty(id, 'line-color', color)
       }
 
       let midTierHidden = false
