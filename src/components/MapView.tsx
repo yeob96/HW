@@ -127,6 +127,16 @@ export function MapView() {
         'office',
         'bus',
         'waste_basket',
+        'ice_cream',
+        'butcher',
+        'hairdresser',
+        'beer',
+        'alcohol_shop',
+        'atm',
+        'music',
+        'billiards',
+        'escape_game',
+        'bicycle_rental',
       ]
       for (const id of ['poi_r1', 'poi_r7', 'poi_r20', 'poi_transit']) {
         const filter = map.getFilter(id)
