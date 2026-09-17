@@ -17,8 +17,8 @@ const CITY_BOUNDARY_DEFAULT_PAINT = {
 }
 const CITY_BOUNDARY_EMPHASIZED_PAINT = {
   'line-color': '#64748b',
-  'line-dasharray': [2, 1.5],
-  'line-width': 1.6,
+  'line-dasharray': [1, 0], // gap 0 → 점선이 아닌 얇은 실선으로 보인다
+  'line-width': 1,
 }
 // 도로를 숨길 때 산지/숲/공원/공동묘지/학교/운동장/주거지 등의 색이 있는 영역도 함께 숨겨서
 // 평지와 구분 없이 보이게 한다 (배경색 #f8f4f0이 그대로 드러나 밝은 회색 계열 평지처럼 보인다)
