@@ -106,8 +106,8 @@ export function MapView() {
       // label_other 레이어(도시/국가/주/읍면동/촌락 등 큰 단위를 제외한 나머지)에서 나온다
       map.setLayoutProperty('label_other', 'visibility', 'none')
 
-      // 학교 부지가 연두색이라 공원/산지 초록색과 헷갈려서, 흐릿한(채도 낮은) 밝은 노란색으로 바꾼다
-      map.setPaintProperty('landuse_school', 'fill-color', '#e8dfba')
+      // 학교 부지가 연두색이라 공원/산지 초록색과 헷갈려서, 연한 노란색으로 바꾼다
+      map.setPaintProperty('landuse_school', 'fill-color', '#fef9c3')
 
       // 학교/관공서/보건소 등 주요시설은 남기고, 상가(각종 상점/식당/카페 등)와 버스정류장만 숨긴다
       const HIDDEN_POI_CLASSES = [
