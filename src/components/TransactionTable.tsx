@@ -20,7 +20,7 @@ interface TransactionRowProps {
   disliked: boolean
   onSwipeLike?: () => void
   onSwipeDislike?: () => void
-  /** 로그인하지 않은 상태에서 드래그를 시도했을 때 — 로그인 모달을 띄워달라는 요청 */
+  /** 로그인하지 않은 상태에서 좋아요/싫어요 임계값까지 드래그했을 때 — 로그인 모달을 띄워달라는 요청 */
   onRequireAuth?: () => void
 }
 
@@ -30,7 +30,8 @@ interface TransactionRowProps {
  * 좋아요된 행을 반대쪽(싫어요)으로, 싫어요된 행을 반대쪽(좋아요)으로 드래그하면
  * 기존 상태가 해제되면서 반대 상태로 바뀐다.
  * 로그인하지 않은 상태에서는 onSwipeLike/onSwipeDislike 대신 onRequireAuth만 주어지며,
- * 드래그를 시작하려는 순간 바로 로그인 모달을 띄운다(실제 드래그는 시작하지 않는다).
+ * 실제 좋아요/싫어요 임계값(SWIPE_THRESHOLD)까지 드래그를 끝냈을 때만 로그인 모달을 띄운다.
+ * 그 전까지는(스크롤을 위한 짧은 터치 포함) 아무 동작도 하지 않고 원위치로 돌아간다.
  * 실제 데이터는 흰 배경의 앞면 레이어(그리드)가 통째로 밀리면서, 뒤에 숨어있던 배경(빨강/파랑 + 아이콘)이 드러난다.
  */
 function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDislike, onRequireAuth }: TransactionRowProps) {
@@ -42,10 +43,6 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggable) return
-    if (!onSwipeLike && !onSwipeDislike && onRequireAuth) {
-      onRequireAuth()
-      return
-    }
     startX.current = e.clientX
     setDragging(true)
   }
@@ -74,6 +71,9 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
           setFlyingOut(false)
           setDragX(0)
         }, 150)
+      } else if (Math.abs(delta) >= SWIPE_THRESHOLD && onRequireAuth) {
+        onRequireAuth()
+        setDragX(0)
       } else {
         setDragX(0)
       }
@@ -84,7 +84,7 @@ function TransactionRow({ t, dealType, liked, disliked, onSwipeLike, onSwipeDisl
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup', handleUp)
     }
-  }, [dragging, onSwipeDislike, onSwipeLike])
+  }, [dragging, onSwipeDislike, onSwipeLike, onRequireAuth])
 
   const maxedOut = dragging && Math.abs(dragX) >= MAX_DRAG
 
