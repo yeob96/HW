@@ -80,7 +80,7 @@ export function MapView() {
   const [activeCategoryTab, setActiveCategoryTab] = useState<string | null>(null)
   const [activeChip, setActiveChip] = useState<string | null>(null)
   const [show3DToggle, setShow3DToggle] = useState(false)
-  const [buildings3DOn, setBuildings3DOn] = useState(true)
+  const [buildings3DOn, setBuildings3DOn] = useState(false)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -145,6 +145,10 @@ export function MapView() {
       }
       checkBuilding3DToggleVisibility()
       map.on('zoom', checkBuilding3DToggleVisibility)
+
+      // 기본값은 3D Off — 입체 대신 평면 건물 채우기를 보여준다
+      map.setLayoutProperty('building-3d', 'visibility', 'none')
+      map.setLayerZoomRange('building', 13, 24)
     })
 
     mapRef.current = map
@@ -265,8 +269,8 @@ export function MapView() {
             {label === '숨김' && show3DToggle && (
               <button
                 onClick={toggleBuildings3D}
-                className={`flex w-16 cursor-pointer flex-col items-center gap-1 border-b border-slate-100 px-2 py-3 text-[11px] last:border-b-0 hover:bg-slate-50 ${
-                  buildings3DOn ? 'text-indigo-600' : 'text-slate-400'
+                className={`flex w-16 cursor-pointer flex-col items-center gap-1 border-b border-slate-100 px-2 py-3 text-[11px] last:border-b-0 ${
+                  buildings3DOn ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-slate-400 hover:bg-slate-50'
                 }`}
               >
                 <span className="text-sm font-bold leading-none">3D</span>
