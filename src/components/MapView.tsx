@@ -118,6 +118,7 @@ export function MapView() {
         'telephone',
         'office',
         'bus',
+        'waste_basket',
       ]
       for (const id of ['poi_r1', 'poi_r7', 'poi_r20', 'poi_transit']) {
         const filter = map.getFilter(id)
