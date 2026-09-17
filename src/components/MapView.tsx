@@ -98,6 +98,34 @@ export function MapView() {
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
 
     map.on('load', () => {
+      // 학교/관공서/보건소 등 주요시설은 남기고, 상가(각종 상점/식당/카페 등)와 버스정류장만 숨긴다
+      const HIDDEN_POI_CLASSES = [
+        'shop',
+        'grocery',
+        'restaurant',
+        'bakery',
+        'fast_food',
+        'clothing_store',
+        'cafe',
+        'bar',
+        'bank',
+        'laundry',
+        'lodging',
+        'fuel',
+        'car',
+        'bicycle',
+        'veterinary',
+        'telephone',
+        'office',
+        'bus',
+      ]
+      for (const id of ['poi_r1', 'poi_r7', 'poi_r20', 'poi_transit']) {
+        const filter = map.getFilter(id)
+        if (filter) {
+          map.setFilter(id, ['all', filter, ['!', ['in', ['get', 'class'], ['literal', HIDDEN_POI_CLASSES]]]])
+        }
+      }
+
       // 도로/철도(선), 건물(면)을 축소 시 함께 숨길 대상으로 모은다
       const hideOnZoomOutLayerIds: string[] = []
       for (const layer of map.getStyle()?.layers ?? []) {
