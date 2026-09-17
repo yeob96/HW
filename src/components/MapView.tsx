@@ -43,6 +43,28 @@ const COLORED_AREA_LAYER_IDS = [
 // building-3d 레이어의 minzoom과 동일 — 이 zoom부터 건물이 입체로 표시될 수 있다
 const BUILDING_3D_MIN_ZOOM = 14
 
+// 지도에 10초간 동작이 없으면 도로에 무지개색이 흐르는 LED 효과를 켠다
+const RAINBOW_IDLE_MS = 10000
+const RAINBOW_HUE_CYCLE_MS = 4000
+const RAINBOW_DASH_STEP_MS = 80
+// 대시 패턴을 프레임마다 조금씩 밀어서 빛이 이동하는 것처럼 보이게 하는 시퀀스
+const RAINBOW_DASH_SEQUENCE = [
+  [0, 4, 3],
+  [0.5, 4, 2.5],
+  [1, 4, 2],
+  [1.5, 4, 1.5],
+  [2, 4, 1],
+  [2.5, 4, 0.5],
+  [3, 4, 0],
+  [0, 0.5, 3, 3.5],
+  [0, 1, 3, 3],
+  [0, 1.5, 3, 2.5],
+  [0, 2, 3, 2],
+  [0, 2.5, 3, 1.5],
+  [0, 3, 3, 1],
+  [0, 3.5, 3, 0.5],
+]
+
 const FILTERS = ['매매', '유형', '평형', '가격']
 
 const CATEGORY_TABS = ['분양', '이야기', '재건축', '경매', '뉴스', '오늘']
@@ -88,6 +110,9 @@ export function MapView() {
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
+
+    let idleTimer: ReturnType<typeof setTimeout> | null = null
+    let rainbowFrame: number | null = null
 
     const map = new MapLibreMap({
       container: containerRef.current,
@@ -208,6 +233,60 @@ export function MapView() {
         map.setPaintProperty(id, 'line-color', color)
       }
 
+      // 10초간 지도에 동작이 없으면 도로에 무지개색 LED가 흐르는 듯한 효과를 준다
+      const allRoadLayerIds = [...motorwayLayerIds, ...yellowRoadLayerIds]
+      const mainRoadLayerIds = allRoadLayerIds.filter((id) => !/_casing$/.test(id))
+      const casingRoadLayerIds = allRoadLayerIds.filter((id) => /_casing$/.test(id))
+
+      let rainbowStartTime = 0
+      let dashIndex = -1
+
+      const stepRainbow = (timestamp: number) => {
+        if (!rainbowStartTime) rainbowStartTime = timestamp
+        const elapsed = timestamp - rainbowStartTime
+        const hue = ((elapsed / RAINBOW_HUE_CYCLE_MS) * 360) % 360
+        for (const id of mainRoadLayerIds) map.setPaintProperty(id, 'line-color', `hsl(${hue}, 90%, 60%)`)
+        for (const id of casingRoadLayerIds) map.setPaintProperty(id, 'line-color', `hsl(${hue}, 90%, 40%)`)
+
+        const stepIndex = Math.floor(elapsed / RAINBOW_DASH_STEP_MS) % RAINBOW_DASH_SEQUENCE.length
+        if (stepIndex !== dashIndex) {
+          dashIndex = stepIndex
+          for (const id of mainRoadLayerIds) map.setPaintProperty(id, 'line-dasharray', RAINBOW_DASH_SEQUENCE[dashIndex])
+        }
+
+        rainbowFrame = requestAnimationFrame(stepRainbow)
+      }
+
+      const startRainbow = () => {
+        if (rainbowFrame) return
+        rainbowStartTime = 0
+        dashIndex = -1
+        rainbowFrame = requestAnimationFrame(stepRainbow)
+      }
+
+      const stopRainbow = () => {
+        if (rainbowFrame) {
+          cancelAnimationFrame(rainbowFrame)
+          rainbowFrame = null
+        }
+        for (const id of mainRoadLayerIds) {
+          map.setPaintProperty(id, 'line-color', DARK_GRAY_ROAD_COLOR)
+          map.setPaintProperty(id, 'line-dasharray', undefined)
+        }
+        for (const id of casingRoadLayerIds) map.setPaintProperty(id, 'line-color', DARK_GRAY_ROAD_CASING_COLOR)
+      }
+
+      const resetIdleTimer = () => {
+        stopRainbow()
+        if (idleTimer) clearTimeout(idleTimer)
+        idleTimer = setTimeout(startRainbow, RAINBOW_IDLE_MS)
+      }
+
+      resetIdleTimer()
+      map.on('movestart', resetIdleTimer)
+      map.on('zoomstart', resetIdleTimer)
+      map.getContainer().addEventListener('pointerdown', resetIdleTimer)
+
       let greenHidden = false
       let midTierHidden = false
       let roadsHidden = false
@@ -261,6 +340,8 @@ export function MapView() {
     mapRef.current = map
 
     return () => {
+      if (idleTimer) clearTimeout(idleTimer)
+      if (rainbowFrame) cancelAnimationFrame(rainbowFrame)
       map.remove()
       mapRef.current = null
     }
