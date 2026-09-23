@@ -6,12 +6,10 @@ const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 const DEFAULT_CENTER: [number, number] = [127.1086, 37.3606] // 성남시 분당구 정자동
 const DEFAULT_ZOOM = 15
 
-// 좌하단 축척이 "1 km"로 표시되는 지점(zoom 약 12.6)부터 산지 등 색 있는 영역을 숨긴다
+// 좌하단 축척이 "1 km"로 표시되는 지점(zoom 약 12.6)부터 산지 등 색 있는 영역과 도로·철도를 모두 숨긴다
 const GREEN_HIDE_MAX_ZOOM = 12.6
-// 좌하단 축척이 "3 km"로 표시되는 지점(zoom 약 11)부터 일반(노란) 도로를 숨긴다
-const MID_ZOOM_MAX = 11.1
-// 좌하단 축척이 "5 km"로 표시되는 지점(이 위도 기준 zoom 약 10.25~10.5 사이)부터는 고속도로/철도/건물까지 숨긴다
-const ROAD_HIDE_MAX_ZOOM = 10.3
+// 좌하단 축척이 "5 km"로 표시되는 지점(이 위도 기준 zoom 약 10.25~10.5 사이)부터는 건물까지 숨긴다
+const BUILDING_HIDE_MAX_ZOOM = 10.3
 // 시/군/구 경계선(admin_level 3~6)의 기본 스타일과, 도로가 숨겨졌을 때 더 도드라지게 보여줄 스타일
 const CITY_BOUNDARY_LAYER = 'boundary_3'
 const CITY_BOUNDARY_DEFAULT_PAINT = {
@@ -222,12 +220,13 @@ export function MapView() {
         ])
       }
 
-      // 도로/철도(선), 건물(면)을 두 단계로 나눠 모은다
-      // - yellowRoadLayerIds: 고속도로(motorway)를 제외한 일반 도로(국도/간선/링크) — 3km부터 숨김
-      // - hideAt5kmLayerIds: 고속도로, 철도, 건물 — 5km부터 숨김 (더 축소해야 사라짐)
+      // 도로/철도(선)는 1km부터 전부 함께 숨기고, 건물(면)만 5km부터 별도로 숨긴다
+      // - yellowRoadLayerIds: 고속도로(motorway)를 제외한 일반 도로(국도/간선/링크)
+      // - motorwayLayerIds: 고속도로
+      // - otherRoadAndRailLayerIds: 철도 등 나머지 선형 레이어
       const yellowRoadLayerIds: string[] = []
       const motorwayLayerIds: string[] = []
-      const hideAt5kmLayerIds: string[] = []
+      const otherRoadAndRailLayerIds: string[] = []
       for (const layer of map.getStyle()?.layers ?? []) {
         if (/shield|highway-name/i.test(layer.id)) {
           map.setLayoutProperty(layer.id, 'visibility', 'none')
@@ -249,15 +248,11 @@ export function MapView() {
           const isMotorway = /motorway/.test(layer.id)
           const isYellowRoad = !isMotorway && (/trunk_primary|secondary_tertiary/.test(layer.id) || /^(road|bridge|tunnel)_link(_casing)?$/.test(layer.id))
           if (isMotorway) motorwayLayerIds.push(layer.id)
-          if (isYellowRoad) yellowRoadLayerIds.push(layer.id)
-          else hideAt5kmLayerIds.push(layer.id)
-        }
-        if (layer.type === 'fill' && layer.id === 'building') {
-          // building-3d는 여기 포함하지 않는다 — 3D on/off 토글이 그 visibility를 독립적으로 관리하는데,
-          // 여기 포함시키면 5km 밖으로 나갔다 들어올 때 무조건 'visible'로 되돌려써서 토글 상태를 무시해버린다
-          hideAt5kmLayerIds.push(layer.id)
+          else if (isYellowRoad) yellowRoadLayerIds.push(layer.id)
+          else otherRoadAndRailLayerIds.push(layer.id)
         }
       }
+      const roadAndRailLayerIds = [...motorwayLayerIds, ...yellowRoadLayerIds, ...otherRoadAndRailLayerIds]
 
       // 고속도로/국도/간선·보조간선(원래 주황·노란색)을 항상 어두운 회색으로 표시한다
       const DARK_GRAY_ROAD_COLOR = '#cbd5e1'
@@ -321,33 +316,26 @@ export function MapView() {
       map.on('zoomstart', resetIdleTimer)
       map.getContainer().addEventListener('pointerdown', resetIdleTimer)
 
-      let greenHidden = false
-      let midTierHidden = false
-      let roadsHidden = false
+      let greenAndRoadsHidden = false
+      let buildingsHidden = false
       const applyZoomDependentStyle = () => {
         const zoom = map.getZoom()
-        const shouldHideGreen = zoom <= GREEN_HIDE_MAX_ZOOM
-        const shouldHideMidTier = zoom <= MID_ZOOM_MAX
-        const shouldHideRoads = zoom <= ROAD_HIDE_MAX_ZOOM
+        const shouldHideGreenAndRoads = zoom <= GREEN_HIDE_MAX_ZOOM
+        const shouldHideBuildings = zoom <= BUILDING_HIDE_MAX_ZOOM
 
-        if (shouldHideGreen !== greenHidden) {
-          greenHidden = shouldHideGreen
-          const visibility = shouldHideGreen ? 'none' : 'visible'
+        if (shouldHideGreenAndRoads !== greenAndRoadsHidden) {
+          greenAndRoadsHidden = shouldHideGreenAndRoads
+          const visibility = shouldHideGreenAndRoads ? 'none' : 'visible'
           for (const id of COLORED_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', visibility)
+          for (const id of roadAndRailLayerIds) map.setLayoutProperty(id, 'visibility', visibility)
         }
 
-        if (shouldHideMidTier !== midTierHidden) {
-          midTierHidden = shouldHideMidTier
-          const visibility = shouldHideMidTier ? 'none' : 'visible'
-          for (const id of yellowRoadLayerIds) map.setLayoutProperty(id, 'visibility', visibility)
-        }
+        if (shouldHideBuildings !== buildingsHidden) {
+          buildingsHidden = shouldHideBuildings
+          // building-3d는 여기서 건드리지 않는다 — 3D on/off 토글이 그 visibility를 독립적으로 관리한다
+          map.setLayoutProperty('building', 'visibility', shouldHideBuildings ? 'none' : 'visible')
 
-        if (shouldHideRoads !== roadsHidden) {
-          roadsHidden = shouldHideRoads
-          const visibility = shouldHideRoads ? 'none' : 'visible'
-          for (const id of hideAt5kmLayerIds) map.setLayoutProperty(id, 'visibility', visibility)
-
-          const boundaryPaint = shouldHideRoads ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
+          const boundaryPaint = shouldHideBuildings ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
           for (const [prop, value] of Object.entries(boundaryPaint)) {
             map.setPaintProperty(CITY_BOUNDARY_LAYER, prop, value)
           }
