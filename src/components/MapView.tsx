@@ -6,6 +6,15 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 const DEFAULT_CENTER: [number, number] = [127.1086, 37.3606] // 성남시 분당구 정자동
 const DEFAULT_ZOOM = 15
+// 좌하단 축척이 "50 km"로 표시되는 지점(zoom 약 6.95) — 이보다 더 축소되지 않게 한다
+const MIN_ZOOM = 6.95
+
+// 한국 영역을 근사한 사각형(정밀 국경 폴리곤 대신 위경도 경계 상자로 근사) — 서해 백령도, 남해 마라도,
+// 동해 독도, 휴전선 부근(고성)을 기준으로 잡았다
+const KOREA_BOUNDS = { west: 124.5, south: 33.0, east: 131.95, north: 38.65 }
+// 화면(현재 보이는 영역)에서 이 사각형과 겹치는 비율이 이 아래로 내려가면(= 한국 아닌 영역이 60% 넘게 보이면)
+// 가까운 한국 영역으로 되돌아간다
+const KOREA_MIN_VISIBLE_RATIO = 0.4
 
 // 좌하단 축척이 "1 km"로 표시되는 지점(zoom 약 12.6)부터 산지 등 색 있는 영역과 도로·철도를 모두 숨긴다
 const GREEN_HIDE_MAX_ZOOM = 12.6
@@ -194,8 +203,31 @@ export function MapView() {
       style: MAP_STYLE_URL,
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
+      minZoom: MIN_ZOOM,
       attributionControl: false,
     })
+
+    // 패닝으로 화면의 60%를 넘게 한국 밖(근사 사각형 기준)이 보이게 되면 가까운 한국 영역으로 되돌아간다.
+    // 이미 화면 중심이 한국 영역 안이라면(넓게 축소해서 비율만 낮아진 경우) 그대로 둔다
+    const snapBackToKoreaIfNeeded = () => {
+      const bounds = map.getBounds()
+      const west = bounds.getWest()
+      const east = bounds.getEast()
+      const south = bounds.getSouth()
+      const north = bounds.getNorth()
+
+      const overlapWidth = Math.max(0, Math.min(east, KOREA_BOUNDS.east) - Math.max(west, KOREA_BOUNDS.west))
+      const overlapHeight = Math.max(0, Math.min(north, KOREA_BOUNDS.north) - Math.max(south, KOREA_BOUNDS.south))
+      const koreaVisibleRatio = (overlapWidth * overlapHeight) / ((east - west) * (north - south))
+      if (koreaVisibleRatio >= KOREA_MIN_VISIBLE_RATIO) return
+
+      const center = map.getCenter()
+      const nearestLng = Math.min(Math.max(center.lng, KOREA_BOUNDS.west), KOREA_BOUNDS.east)
+      const nearestLat = Math.min(Math.max(center.lat, KOREA_BOUNDS.south), KOREA_BOUNDS.north)
+      if (nearestLng === center.lng && nearestLat === center.lat) return
+      map.flyTo({ center: [nearestLng, nearestLat], duration: 600 })
+    }
+    map.on('moveend', snapBackToKoreaIfNeeded)
 
     // bottom 코너는 addControl이 항상 맨 앞에 끼워 넣으므로(prepend), 나중에 추가하는 나침반이
     // DOM상 확대/축소보다 앞에 온다. 코너를 가로 방향 flex로 바꿔 그 DOM 순서대로 왼쪽부터 배치한다.
