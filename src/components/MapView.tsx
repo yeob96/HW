@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
-import { AttributionControl, GeoJSONSource, Map as MapLibreMap, NavigationControl, ScaleControl } from 'maplibre-gl'
+import { AttributionControl, Map as MapLibreMap, NavigationControl, ScaleControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
@@ -52,90 +52,14 @@ const COLORED_AREA_LAYER_IDS = [
 // building-3d 레이어의 minzoom과 동일 — 이 zoom부터 건물이 입체로 표시될 수 있다
 const BUILDING_3D_MIN_ZOOM = 14
 
-// 지도 타일(transportation 레이어)에는 철도가 class/subclass(rail, subway 등)만 있고
-// 몇 호선인지 알 수 있는 정보가 없다. 노선별 실제 색은 OSM의 노선(route relation) 태그에만 있어서
-// Overpass API로 현재 화면 범위의 노선 geometry+colour를 따로 받아 별도 레이어로 얹는다
-// 공개 무료 API라 하나가 막히거나 느릴 때가 있어 순서대로 시도할 미러 목록을 둔다
-const OVERPASS_URLS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.private.coffee/api/interpreter',
-]
-const OVERPASS_ATTEMPT_TIMEOUT_MS = 8000
+// 지도 타일(transportation 레이어)에는 철도가 class/subclass(rail, subway 등)만 있고 몇 호선인지 알 수
+// 있는 정보가 없다. 노선별 실제 색은 OSM의 노선(route relation) 태그에만 있는데, 매 이동마다 Overpass API를
+// 실시간으로 호출하는 방식은 그 API가 막히거나 느려지면 통째로 표시가 안 되는 문제가 있었다(무료 공개
+// API라 하나의 세션에서 여러 번 호출하면 사용량 제한에 걸리기 쉽다). 대신 scripts/fetch-rail-routes.mjs로
+// 전국 지하철/경전철/트램 노선을 미리 한 번 받아 public/rail-routes.geojson으로 고정해두고 그 정적 파일만 읽는다
 const RAIL_ROUTE_SOURCE_ID = 'rail-routes'
 const RAIL_ROUTE_LAYER_ID = 'rail-routes-line'
-const RAIL_ROUTE_DEBOUNCE_MS = 600
-const RAIL_ROUTE_TYPES = '^(subway|light_rail|train|tram)$'
-// colour 태그가 없는 노선(주로 일반 철도)에 쓸 기본 색
-const DEFAULT_RAIL_ROUTE_COLOR = '#6b7280'
-const EMPTY_GEOJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
-
-interface OverpassLatLon {
-  lat: number
-  lon: number
-}
-interface OverpassWayElement {
-  type: 'way'
-  id: number
-  geometry?: OverpassLatLon[]
-}
-interface OverpassRelationElement {
-  type: 'relation'
-  id: number
-  tags?: { colour?: string; ref?: string; name?: string }
-  members?: Array<{ type: string; ref: number; role: string }>
-}
-type OverpassElement = OverpassWayElement | OverpassRelationElement
-
-// Overpass는 노선(relation)의 태그(colour 등)와 그 구성 선로(way)의 geometry를 따로 돌려준다.
-// relation의 members 목록으로 둘을 연결해 노선마다 하나의 색을 입힌 LineString들을 만든다
-function railRoutesToGeoJSON(elements: OverpassElement[]): GeoJSON.FeatureCollection {
-  const wayGeometryById = new Map<number, OverpassLatLon[]>()
-  const relations: OverpassRelationElement[] = []
-  for (const el of elements) {
-    if (el.type === 'way' && el.geometry) wayGeometryById.set(el.id, el.geometry)
-    else if (el.type === 'relation') relations.push(el)
-  }
-
-  const features: GeoJSON.Feature[] = []
-  for (const relation of relations) {
-    const color = relation.tags?.colour || DEFAULT_RAIL_ROUTE_COLOR
-    for (const member of relation.members ?? []) {
-      if (member.type !== 'way') continue
-      const geometry = wayGeometryById.get(member.ref)
-      if (!geometry || geometry.length < 2) continue
-      features.push({
-        type: 'Feature',
-        properties: { color, ref: relation.tags?.ref ?? '', name: relation.tags?.name ?? '' },
-        geometry: { type: 'LineString', coordinates: geometry.map((pt) => [pt.lon, pt.lat]) },
-      })
-    }
-  }
-  return { type: 'FeatureCollection', features }
-}
-
-// 미러를 순서대로 시도해 하나가 막히거나 느려도(무료 공개 API라 자주 있는 일) 다음 미러로 넘어간다.
-// outerSignal이 취소되면(더 최신 이동으로 이 요청이 낡아지면) 즉시 중단한다
-async function fetchOverpass(query: string, outerSignal: AbortSignal): Promise<{ elements: OverpassElement[] } | null> {
-  for (const url of OVERPASS_URLS) {
-    if (outerSignal.aborted) return null
-    const attemptController = new AbortController()
-    const onOuterAbort = () => attemptController.abort()
-    outerSignal.addEventListener('abort', onOuterAbort)
-    const timeoutId = setTimeout(() => attemptController.abort(), OVERPASS_ATTEMPT_TIMEOUT_MS)
-    try {
-      const res = await fetch(url, { method: 'POST', body: query, signal: attemptController.signal })
-      if (!res.ok) continue
-      return await res.json()
-    } catch {
-      continue // 이 미러가 실패/타임아웃 — 다음 미러로
-    } finally {
-      clearTimeout(timeoutId)
-      outerSignal.removeEventListener('abort', onOuterAbort)
-    }
-  }
-  return null
-}
+const RAIL_ROUTE_DATA_URL = '/rail-routes.geojson'
 
 // 지도에 10분간 동작이 없으면 도로에 무지개색이 흐르는 LED 효과를 켠다
 const RAINBOW_IDLE_MS = 10 * 60 * 1000
@@ -323,9 +247,6 @@ export function MapView() {
 
     let idleTimer: ReturnType<typeof setTimeout> | null = null
     let rainbowFrame: number | null = null
-    let railFetchTimer: ReturnType<typeof setTimeout> | null = null
-    let railFetchAbortController: AbortController | null = null
-    let railFetchToken = 0
 
     const map = new MapLibreMap({
       container: containerRef.current,
@@ -489,9 +410,10 @@ export function MapView() {
       }
       const roadAndRailLayerIds = [...motorwayLayerIds, ...yellowRoadLayerIds, ...otherRoadAndRailLayerIds]
 
-      // 노선별 실제 색 레이어 — 텍스트 라벨 아래, 나머지 선/면 위에 오도록 첫 symbol 레이어 바로 아래에 끼워 넣는다
+      // 노선별 실제 색 레이어 — 미리 받아둔 정적 GeoJSON을 그대로 얹는다 (텍스트 라벨 아래,
+      // 나머지 선/면 위에 오도록 첫 symbol 레이어 바로 아래에 끼워 넣는다)
       const firstSymbolLayerId = map.getStyle()?.layers?.find((l) => l.type === 'symbol')?.id
-      map.addSource(RAIL_ROUTE_SOURCE_ID, { type: 'geojson', data: EMPTY_GEOJSON })
+      map.addSource(RAIL_ROUTE_SOURCE_ID, { type: 'geojson', data: RAIL_ROUTE_DATA_URL })
       map.addLayer(
         {
           id: RAIL_ROUTE_LAYER_ID,
@@ -507,34 +429,6 @@ export function MapView() {
         firstSymbolLayerId,
       )
       roadAndRailLayerIds.push(RAIL_ROUTE_LAYER_ID)
-
-      // 화면 범위의 노선(route relation) geometry+colour를 Overpass에서 받아와 위 레이어에 채운다.
-      // 철도가 어차피 숨겨지는 배율(1km 이상 축소)에서는 요청하지 않는다
-      const refreshRailRoutes = () => {
-        if (railFetchTimer) clearTimeout(railFetchTimer)
-        railFetchTimer = setTimeout(async () => {
-          const source = map.getSource<GeoJSONSource>(RAIL_ROUTE_SOURCE_ID)
-          if (!source) return
-
-          if (map.getZoom() <= GREEN_HIDE_MAX_ZOOM) {
-            source.setData(EMPTY_GEOJSON)
-            return
-          }
-
-          railFetchAbortController?.abort()
-          const controller = new AbortController()
-          railFetchAbortController = controller
-          const requestToken = ++railFetchToken
-
-          const bounds = map.getBounds()
-          const query = `[out:json][timeout:25];relation["route"~"${RAIL_ROUTE_TYPES}"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()})->.routes;.routes out body;way(r.routes)->.ways;.ways out geom;`
-          const data = await fetchOverpass(query, controller.signal)
-          if (requestToken !== railFetchToken || !data) return // 그 사이 더 최신 요청이 시작됐거나, 모든 미러가 실패함
-          source.setData(railRoutesToGeoJSON(data.elements))
-        }, RAIL_ROUTE_DEBOUNCE_MS)
-      }
-      refreshRailRoutes()
-      map.on('moveend', refreshRailRoutes)
 
       // 고속도로/국도/간선·보조간선(원래 주황·노란색)을 항상 어두운 회색으로 표시한다
       const DARK_GRAY_ROAD_COLOR = '#cbd5e1'
@@ -646,8 +540,6 @@ export function MapView() {
     return () => {
       if (idleTimer) clearTimeout(idleTimer)
       if (rainbowFrame) cancelAnimationFrame(rainbowFrame)
-      if (railFetchTimer) clearTimeout(railFetchTimer)
-      railFetchAbortController?.abort()
       map.remove()
       mapRef.current = null
     }
