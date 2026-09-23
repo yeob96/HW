@@ -19,13 +19,33 @@ const OUTPUT_PATH = new URL('../public/rail-stations.geojson', import.meta.url)
 
 const query = `[out:json][timeout:180];relation["route"~"${ROUTE_TYPES}"](${BOUNDS.south},${BOUNDS.west},${BOUNDS.north},${BOUNDS.east})->.routes;.routes out body;node(r.routes)->.stopnodes;.stopnodes out body;node["railway"="subway_entrance"](${BOUNDS.south},${BOUNDS.west},${BOUNDS.north},${BOUNDS.east})->.entrances;.entrances out body;`
 
+// Overpass는 User-Agent가 없거나 curl 기본값 같은 요청을 봇으로 보고 406으로 막는 경우가 있다.
+// 요청마다 이 값을 붙여야 한다(Overpass 사용 정책이 요구하는 부분이기도 하다)
+const FETCH_HEADERS = {
+  'User-Agent': 'HW-commute-real-estate-app/1.0 (rail station data fetch script)',
+  'Content-Type': 'text/plain',
+  Accept: 'application/json',
+}
+const RETRY_DELAY_MS = 15000
+
+async function fetchOnce(url) {
+  const res = await fetch(url, { method: 'POST', headers: FETCH_HEADERS, body: query })
+  if (res.status === 429) {
+    console.warn(`  429 (사용량 초과) — ${RETRY_DELAY_MS / 1000}초 후 한 번 더 시도`)
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+    const retry = await fetch(url, { method: 'POST', headers: FETCH_HEADERS, body: query })
+    if (!retry.ok) throw new Error(`HTTP ${retry.status}`)
+    return retry.json()
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 async function fetchOverpass() {
   for (const url of OVERPASS_URLS) {
     try {
       console.log(`Trying ${url} ...`)
-      const res = await fetch(url, { method: 'POST', body: query })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      return await res.json()
+      return await fetchOnce(url)
     } catch (err) {
       console.warn(`  failed: ${err.message}`)
     }
