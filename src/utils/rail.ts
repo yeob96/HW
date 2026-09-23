@@ -2,20 +2,21 @@
 // 순수 함수만 두어 브라우저 없이도 실제 데이터로 검증할 수 있게 분리했다
 // (scripts/check-rail-geometry.ts 참고)
 
-// 출입구가 지도 위에 홀로 떠 있으면 무엇의 출구인지 알 수 없어서, 가장 가까운 역과 잇는
-// 연결선을 그려 노선에서 뻗어 나온 것처럼 보이게 한다. 이 거리 안에 역이 없는 출입구
-// (OSM에 해당 노선이 없는 경우 등)는 연결선 없이 지금처럼 단독으로 표시된다
 // 노선 색이 비어 있는 경우의 기본값 — fetch 스크립트의 DEFAULT_COLOR와 같다
 const FALLBACK_LINE_COLOR = '#6b7280'
-const EXIT_CONNECTOR_MAX_DISTANCE_M = 400
+// 출입구가 지도 위에 홀로 떠 있으면 무엇의 출구인지 알 수 없어서, 가장 가까운 역과 잇는
+// 연결선을 그려 노선에서 뻗어 나온 것처럼 보이게 한다. 이 거리 안에 역이 없는 출입구
+// (OSM에 해당 노선이 없는 경우 등)는 연결선 없이 단독으로 표시된다
+export const EXIT_CONNECTOR_MAX_DISTANCE_M = 400
 // 가까운 역만 비교하도록 위경도를 이 크기(약 1.1km)의 격자로 나눠 색인한다 —
 // 연결 반경보다 넉넉히 커서 인접 3x3 칸만 보면 후보를 놓치지 않는다
 const STATION_GRID_DEG = 0.01
 // 역은 노선 위에 얹힌 굵은 막대(승강장)로 표시한다. 역 중심에서 이 거리 안에서
 // 해당 호선의 선형을 찾아 그 위에 막대를 올린다
-const PLATFORM_ANCHOR_MAX_DISTANCE_M = 300
-// 막대 길이의 절반 — 실제 지하철 승강장(약 200m)에 맞췄다
-const PLATFORM_HALF_LENGTH_M = 100
+export const PLATFORM_ANCHOR_MAX_DISTANCE_M = 300
+// 막대 길이의 절반. 실제 지하철 승강장은 200m 남짓이지만, 지도에서 역이 또렷이
+// 드러나도록 그보다 조금 크게 잡았다
+export const PLATFORM_HALF_LENGTH_M = 130
 
 export type Coordinate = [lon: number, lat: number]
 
@@ -186,7 +187,7 @@ const boundsOf = (coordinates: Coordinate[]): [number, number, number, number] =
 }
 
 // 노선은 짧은 조각(길이 중앙값 340m) 여러 개로 나뉘어 들어온다. 조각을 그대로 두면
-// 역이 조각 끝부분에 걸렸을 때 막대가 200m를 못 채우고 잘린다. 조각들의 끝점은 91%가
+// 역이 조각 끝부분에 걸렸을 때 막대가 제 길이를 못 채우고 잘린다. 조각들의 끝점은 91%가
 // 정확히 일치하므로, 끝점이 맞물리는 조각끼리 이어 붙여 긴 선으로 만든다
 function stitchRouteLines(lines: RouteLine[]): RouteLine[] {
   const byEndpoint = new Map<string, number[]>()

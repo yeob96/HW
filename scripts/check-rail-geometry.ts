@@ -2,11 +2,14 @@
 // 지도를 띄우지 않고 좌표 계산이 맞는지 확인하는 용도다.
 // 실행: node scripts/check-rail-geometry.ts
 import { readFileSync } from 'node:fs'
-import { buildExitConnectors, buildStationPlatforms } from '../src/utils/rail.ts'
-
-const EXIT_CONNECTOR_MAX_DISTANCE_M = 400 // rail.ts와 같은 값
-const PLATFORM_ANCHOR_MAX_DISTANCE_M = 300
-const PLATFORM_HALF_LENGTH_M = 100
+// 상수도 그대로 가져온다 — 여기서 다시 적어두면 값이 바뀔 때 조용히 어긋난다
+import {
+  buildExitConnectors,
+  buildStationPlatforms,
+  EXIT_CONNECTOR_MAX_DISTANCE_M,
+  PLATFORM_ANCHOR_MAX_DISTANCE_M,
+  PLATFORM_HALF_LENGTH_M,
+} from '../src/utils/rail.ts'
 
 function meters(aLon: number, aLat: number, bLon: number, bLat: number): number {
   const R = 6371000

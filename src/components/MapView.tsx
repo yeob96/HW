@@ -563,7 +563,7 @@ export function MapView() {
             layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
               'line-color': ['get', 'color'],
-              'line-width': ['interpolate', ['linear'], ['zoom'], 16, 1.5, 18, 3],
+              'line-width': ['interpolate', ['linear'], ['zoom'], 16, 3, 18, 6],
             },
           },
           railBeforeId,
@@ -580,7 +580,7 @@ export function MapView() {
             layout: { 'line-cap': 'butt', 'line-join': 'round' },
             paint: {
               'line-color': ['get', 'color'],
-              'line-width': ['interpolate', ['linear'], ['zoom'], 15, 5, 17, 9, 19, 14],
+              'line-width': ['interpolate', ['linear'], ['zoom'], 15, 8, 17, 15, 19, 24],
             },
           },
           railBeforeId,
