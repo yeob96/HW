@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { AttributionControl, Map as MapLibreMap, NavigationControl, ScaleControl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
@@ -67,6 +68,18 @@ const RAINBOW_DASH_SEQUENCE = [
 // 나침반 바늘 아이콘 — 북쪽을 가리키는 위쪽 삼각형만 빨간색으로, 남쪽은 기존처럼 회색으로 둔다
 const COMPASS_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29"><path fill="#ef4444" d="m10.5 14 4-8 4 8z"/><path fill="#ccc" d="m10.5 16 4 8 4-8z"/></svg>`
 
+// 아파트/지역/학교명 검색 — 별도 API 키가 필요 없는 OpenStreetMap Nominatim을 사용한다
+const GEOCODE_SEARCH_URL = 'https://nominatim.openstreetmap.org/search'
+const SEARCH_DEBOUNCE_MS = 400
+
+interface SearchResult {
+  id: number
+  label: string
+  lat: number
+  lon: number
+  boundingBox: [south: number, north: number, west: number, east: number]
+}
+
 const FILTERS = ['매매', '유형', '평형', '가격']
 
 const CATEGORY_TABS = ['분양', '이야기', '재건축', '경매', '뉴스', '오늘']
@@ -109,6 +122,66 @@ export function MapView() {
   const [activeChip, setActiveChip] = useState<string | null>(null)
   const [show3DToggle, setShow3DToggle] = useState(false)
   const [buildings3DOn, setBuildings3DOn] = useState(false)
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  // 검색 결과를 선택해 입력창에 그 이름을 채워 넣을 때, 그 이름으로 다시 검색이 돌아
+  // 목록이 재등장하는 것을 막는 플래그
+  const skipNextSearchRef = useRef(false)
+
+  useEffect(() => {
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false
+      return
+    }
+    const query = searchQuery.trim()
+    if (!query) {
+      setSearchResults([])
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      const url = `${GEOCODE_SEARCH_URL}?format=jsonv2&countrycodes=kr&accept-language=ko&limit=5&q=${encodeURIComponent(query)}`
+      try {
+        const res = await fetch(url)
+        const data: Array<{ place_id: number; display_name: string; lat: string; lon: string; boundingbox: [string, string, string, string] }> =
+          await res.json()
+        setSearchResults(
+          data.map((item) => ({
+            id: item.place_id,
+            label: item.display_name,
+            lat: Number(item.lat),
+            lon: Number(item.lon),
+            boundingBox: item.boundingbox.map(Number) as SearchResult['boundingBox'],
+          })),
+        )
+      } catch {
+        setSearchResults([])
+      }
+    }, SEARCH_DEBOUNCE_MS)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  const selectSearchResult = (result: SearchResult) => {
+    const map = mapRef.current
+    if (!map) return
+    const [south, north, west, east] = result.boundingBox
+    map.fitBounds(
+      [
+        [west, south],
+        [east, north],
+      ],
+      { padding: 64, maxZoom: 17, duration: 800 },
+    )
+    skipNextSearchRef.current = true
+    setSearchQuery(result.label)
+    setSearchResults([])
+  }
+
+  const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchResults[0]) selectSearchResult(searchResults[0])
+  }
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -412,15 +485,32 @@ export function MapView() {
           </div>
         </div>
 
-        <div className="px-4 pt-3">
+        <div className="relative px-4 pt-3">
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
             <span className="text-slate-400">🔍</span>
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="아파트, 지역 또는 학교명으로 검색"
               className="w-full text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
             />
           </div>
+          {searchResults.length > 0 && (
+            <ul className="absolute inset-x-4 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+              {searchResults.map((result) => (
+                <li key={result.id}>
+                  <button
+                    onClick={() => selectSearchResult(result)}
+                    className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    {result.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="flex items-center gap-2 px-4 pt-3 text-xs">
