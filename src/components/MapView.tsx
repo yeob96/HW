@@ -122,9 +122,20 @@ export function MapView() {
       attributionControl: false,
     })
 
+    // bottom 코너는 addControl이 항상 맨 앞에 끼워 넣으므로(prepend), 나중에 추가하는 나침반이
+    // DOM상 확대/축소보다 앞에 온다. 코너를 가로 방향 flex로 바꿔 그 DOM 순서대로 왼쪽부터 배치한다.
+    // 나침반 클릭 시 지도 북쪽을 위로 되돌린다
     map.addControl(new NavigationControl({ showCompass: false }), 'bottom-right')
+    map.addControl(new NavigationControl({ showZoom: false, showCompass: true }), 'bottom-right')
     map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left')
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
+
+    const bottomRightCorner = map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-bottom-right')
+    if (bottomRightCorner) {
+      bottomRightCorner.style.display = 'flex'
+      bottomRightCorner.style.flexDirection = 'row'
+      bottomRightCorner.style.alignItems = 'flex-end'
+    }
 
     map.on('load', () => {
       // "위례신도시"(suburb), "헌인마을"(hamlet) 등 시/군/구보다 작은 동네 이름은
@@ -208,8 +219,15 @@ export function MapView() {
         }
         const textField = layer.layout?.['text-field']
         if (Array.isArray(textField) && JSON.stringify(textField).includes('name:nonlatin')) {
-          // 지명 라벨을 "영문\n한글" 대신 한글(nonlatin)만 표시하도록 덮어쓴다
-          map.setLayoutProperty(layer.id, 'text-field', ['coalesce', ['get', 'name:nonlatin'], ['get', 'name']])
+          // 지명 라벨을 "영문\n한글" 대신 한글만 표시하도록 덮어쓴다.
+          // 해외 지명은 name:nonlatin이 현지 문자(도쿄="東京都")라서, 한국어 번역명인
+          // name:ko(도쿄="도쿄도")를 우선 사용하고 없으면 nonlatin → name 순으로 대체한다
+          map.setLayoutProperty(layer.id, 'text-field', [
+            'coalesce',
+            ['get', 'name:ko'],
+            ['get', 'name:nonlatin'],
+            ['get', 'name'],
+          ])
         }
         if (layer.type === 'line' && /^(road|bridge|tunnel)_/.test(layer.id)) {
           const isMotorway = /motorway/.test(layer.id)
