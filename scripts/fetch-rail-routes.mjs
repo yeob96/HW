@@ -17,9 +17,31 @@ const OUTPUT_PATH = new URL('../public/rail-routes.geojson', import.meta.url)
 // route=train으로 태깅돼 있어서 위 목록만으로는 통째로 빠진다. 그렇다고 route=train을 전부 받으면
 // KTX·SRT·무궁화 같은 도시간 열차까지 딸려오는데, 그런 노선은 ref와 colour가 비어 있는 반면
 // 광역전철은 둘 다 갖고 있어서 이 두 태그의 유무로 가른다
+// KTX·SRT 같은 고속철도는 ref도 colour도 비어 있어서 위의 광역전철 조건에 걸리지 않는다.
+// service=high_speed(표기가 highspeed로 된 것도 있다)로 잡되, service 태그가 아예 없는
+// 관계도 있어서 이름으로도 받는다. 무궁화호·ITX·화물선은 둘 다 해당하지 않아 제외된다
+const HIGH_SPEED_SERVICE = '^high_?speed$'
+const HIGH_SPEED_NAME = 'KTX|SRT|고속철도'
+// 고속철도는 OSM에 색이 없어 직접 정한다. 수서발 SRT는 보라, 나머지 KTX는 남색.
+// 현재 OSM 스냅샷은 수서발 노선도 이름을 KTX로 달아둔 곳이 있어 그때는 남색으로 나온다
+const HIGH_SPEED_STYLES = [
+  { pattern: /SRT/i, ref: 'SRT', color: '#5B2C83' },
+  { pattern: /KTX|고속철도/, ref: 'KTX', color: '#0B3C8C' },
+]
+
 // 경계 사각형의 남동쪽 모서리에 규슈(후쿠오카 130.4E/33.6N)가 걸려서, 사각형으로 받으면
 // JR 규슈 노선까지 딸려온다. 나라 경계(ISO 3166-1 = KR)로 받아 한국 노선만 남긴다
-const query = `[out:json][timeout:180];area["ISO3166-1"="KR"]->.kr;(relation["route"~"${ROUTE_TYPES}"](area.kr);relation["route"="train"]["ref"]["colour"](area.kr););out body;way(r)->.ways;.ways out geom;`
+const query = `[out:json][timeout:180];area["ISO3166-1"="KR"]->.kr;(relation["route"~"${ROUTE_TYPES}"](area.kr);relation["route"="train"]["ref"]["colour"](area.kr);relation["route"="train"]["service"~"${HIGH_SPEED_SERVICE}"](area.kr);relation["route"="train"]["name"~"${HIGH_SPEED_NAME}"](area.kr););out body;way(r)->.ways;.ways out geom;`
+
+// 고속철도 관계면 직접 정한 ref/색을, 아니면 OSM 태그를 그대로 쓴다
+function styleOf(tags) {
+  const isHighSpeed = new RegExp(HIGH_SPEED_SERVICE).test(tags?.service ?? '') || new RegExp(HIGH_SPEED_NAME).test(tags?.name ?? '')
+  if (isHighSpeed && !tags?.colour) {
+    const style = HIGH_SPEED_STYLES.find((s) => s.pattern.test(tags?.name ?? ''))
+    if (style) return { color: style.color, ref: style.ref }
+  }
+  return { color: tags?.colour || DEFAULT_COLOR, ref: tags?.ref || '' }
+}
 
 // Overpass는 User-Agent가 없거나 curl 기본값 같은 요청을 봇으로 보고 406으로 막는 경우가 있다.
 // 요청마다 이 값을 붙여야 한다(Overpass 사용 정책이 요구하는 부분이기도 하다)
@@ -66,8 +88,7 @@ function toDedupedGeoJSON(elements) {
   // 같은 물리 선로가 계통/방향별로 여러 relation에 중복 소속된 경우가 많아 (way, color) 기준으로 한 번만 남긴다
   const seen = new Map()
   for (const relation of relations) {
-    const color = relation.tags?.colour || DEFAULT_COLOR
-    const ref = relation.tags?.ref || ''
+    const { color, ref } = styleOf(relation.tags)
     for (const member of relation.members ?? []) {
       if (member.type !== 'way') continue
       const key = `${member.ref}:${color}`
