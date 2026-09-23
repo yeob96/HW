@@ -6,6 +6,8 @@ import type {
   ExpressionSpecification,
 } from '@maplibre/maplibre-gl-style-spec'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { buildExitConnectors, buildStationPlatforms } from '../utils/rail'
+import type { RailStationFeatureProperties } from '../utils/rail'
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 const DEFAULT_CENTER: [number, number] = [127.1086, 37.3606] // 성남시 분당구 정자동
@@ -78,6 +80,7 @@ const RAIL_BADGE_LAYER_ID = 'rail-station-badges'
 const RAIL_LABEL_LAYER_ID = 'rail-station-labels'
 const RAIL_EXIT_LAYER_ID = 'rail-station-exits'
 const RAIL_EXIT_CONNECTOR_LAYER_ID = 'rail-station-exit-connectors'
+const RAIL_PLATFORM_LAYER_ID = 'rail-station-platforms'
 // 역/출입구 배지는 개별 역이 구분될 만큼 확대했을 때만 보여준다
 const RAIL_STATION_MIN_ZOOM = 15
 const RAIL_EXIT_MIN_ZOOM = 16
@@ -86,91 +89,6 @@ const EXIT_ICON_SIZE = 18
 const ICON_PIXEL_RATIO = 2 // 레티나 화면 대비 2배 해상도로 그려서 pixelRatio로 등록한다
 const EXIT_BADGE_COLOR = '#facc15' // 이미지 속 노란 출구 동그라미
 const EXIT_BADGE_TEXT_COLOR = '#111827'
-// 출입구가 지도 위에 홀로 떠 있으면 무엇의 출구인지 알 수 없어서, 가장 가까운 역과 잇는
-// 연결선을 그려 노선에서 뻗어 나온 것처럼 보이게 한다. 이 거리 안에 역이 없는 출입구
-// (OSM에 해당 노선이 없는 경우 등)는 연결선 없이 지금처럼 단독으로 표시된다
-const EXIT_CONNECTOR_MAX_DISTANCE_M = 400
-// 가까운 역만 비교하도록 위경도를 이 크기(약 1.1km)의 격자로 나눠 색인한다 —
-// 연결 반경보다 넉넉히 커서 인접 3x3 칸만 보면 후보를 놓치지 않는다
-const STATION_GRID_DEG = 0.01
-
-interface RailStationFeatureProperties {
-  kind: 'badge' | 'label' | 'exit' | 'connector'
-  ref?: string
-  color?: string
-  name?: string
-  offset?: [number, number]
-}
-
-interface StationPoint {
-  lon: number
-  lat: number
-  color: string
-}
-
-// 위경도 차이를 미터로 환산한다 — 한 역 주변(수백 m)만 다루므로 평면 근사로 충분하다
-function approxDistanceMeters(aLon: number, aLat: number, bLon: number, bLat: number): number {
-  const EARTH_RADIUS_M = 6371000
-  const toRad = Math.PI / 180
-  const midLat = ((aLat + bLat) / 2) * toRad
-  const dx = (aLon - bLon) * Math.cos(midLat) * toRad * EARTH_RADIUS_M
-  const dy = (aLat - bLat) * toRad * EARTH_RADIUS_M
-  return Math.hypot(dx, dy)
-}
-
-const gridKey = (lon: number, lat: number) => `${Math.floor(lon / STATION_GRID_DEG)},${Math.floor(lat / STATION_GRID_DEG)}`
-
-// 각 출입구를 가장 가까운 역과 잇는 선 feature를 만든다.
-// 색은 그 역의 첫 번째 호선 색을 쓴다 — 환승역은 출입구가 어느 호선 소속인지 OSM 태그에
-// 없어서 호선별로 나눌 수 없고, 어느 역의 출구인지만 드러나면 목적은 달성된다
-function buildExitConnectors(features: GeoJSON.Feature[]): GeoJSON.Feature[] {
-  const grid = new Map<string, StationPoint[]>()
-  for (const feature of features) {
-    const props = feature.properties as RailStationFeatureProperties
-    if (props.kind !== 'badge' || feature.geometry.type !== 'Point') continue
-    const [lon, lat] = feature.geometry.coordinates
-    const key = gridKey(lon, lat)
-    const cell = grid.get(key)
-    // 환승역은 같은 좌표에 배지가 여러 개다 — 첫 번째(=첫 호선 색)만 남긴다
-    if (cell) {
-      if (!cell.some((s) => s.lon === lon && s.lat === lat)) cell.push({ lon, lat, color: props.color ?? EXIT_BADGE_COLOR })
-    } else {
-      grid.set(key, [{ lon, lat, color: props.color ?? EXIT_BADGE_COLOR }])
-    }
-  }
-
-  const connectors: GeoJSON.Feature[] = []
-  for (const feature of features) {
-    const props = feature.properties as RailStationFeatureProperties
-    if (props.kind !== 'exit' || feature.geometry.type !== 'Point') continue
-    const [lon, lat] = feature.geometry.coordinates
-
-    let nearest: StationPoint | null = null
-    let nearestDistance = EXIT_CONNECTOR_MAX_DISTANCE_M
-    const cx = Math.floor(lon / STATION_GRID_DEG)
-    const cy = Math.floor(lat / STATION_GRID_DEG)
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        for (const station of grid.get(`${cx + dx},${cy + dy}`) ?? []) {
-          const distance = approxDistanceMeters(lon, lat, station.lon, station.lat)
-          if (distance < nearestDistance) {
-            nearestDistance = distance
-            nearest = station
-          }
-        }
-      }
-    }
-    if (!nearest) continue
-
-    connectors.push({
-      type: 'Feature',
-      properties: { kind: 'connector', color: nearest.color },
-      geometry: { type: 'LineString', coordinates: [[nearest.lon, nearest.lat], [lon, lat]] },
-    })
-  }
-  return connectors
-}
-
 // 배경색 밝기에 따라 글자를 검정/흰색 중 읽기 쉬운 쪽으로 고른다
 function pickReadableTextColor(bgColor: string): string {
   const hex = /^#?([0-9a-f]{6})$/i.exec(bgColor.replace('#', ''))
@@ -599,7 +517,9 @@ export function MapView() {
       // 역 이름+호선 배지, 출입구 번호. 배지/출입구 아이콘은 (색, 번호) 조합마다 하나씩만 만들면 되므로
       // 정적 파일을 먼저 받아 어떤 조합이 실제로 쓰이는지 확인한 뒤 addImage로 등록하고 나서 레이어를 얹는다
       void (async () => {
-        const res = await fetch(RAIL_STATION_DATA_URL)
+        // 노선 파일은 막대(승강장)를 노선 선형 위에 얹기 위해 좌표가 필요하다 —
+        // 지도 소스로도 같은 URL을 쓰므로 두 번째 요청은 브라우저 캐시에서 온다
+        const [res, routeRes] = await Promise.all([fetch(RAIL_STATION_DATA_URL), fetch(RAIL_ROUTE_DATA_URL)])
         if (!res.ok) return
         const stationData: GeoJSON.FeatureCollection = await res.json()
 
@@ -623,6 +543,11 @@ export function MapView() {
 
         // 출입구↔역 연결선을 같은 소스에 넣는다 (kind: 'connector')
         stationData.features.push(...buildExitConnectors(stationData.features))
+        // 노선 파일을 못 읽으면 막대만 건너뛰고 나머지는 그대로 표시한다
+        if (routeRes.ok) {
+          const routeData: GeoJSON.FeatureCollection = await routeRes.json()
+          stationData.features.push(...buildStationPlatforms(stationData.features, routeData.features))
+        }
 
         map.addSource(RAIL_STATION_SOURCE_ID, { type: 'geojson', data: stationData })
 
@@ -639,6 +564,23 @@ export function MapView() {
             paint: {
               'line-color': ['get', 'color'],
               'line-width': ['interpolate', ['linear'], ['zoom'], 16, 1.5, 18, 3],
+            },
+          },
+          railBeforeId,
+        )
+
+        // 역 막대(승강장) — 연결선 위, 배지 아래. 끝을 둥글리지 않아(butt) 직사각형으로 보인다
+        map.addLayer(
+          {
+            id: RAIL_PLATFORM_LAYER_ID,
+            type: 'line',
+            source: RAIL_STATION_SOURCE_ID,
+            filter: ['==', ['get', 'kind'], 'platform'],
+            minzoom: RAIL_STATION_MIN_ZOOM,
+            layout: { 'line-cap': 'butt', 'line-join': 'round' },
+            paint: {
+              'line-color': ['get', 'color'],
+              'line-width': ['interpolate', ['linear'], ['zoom'], 15, 5, 17, 9, 19, 14],
             },
           },
           railBeforeId,
