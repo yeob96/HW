@@ -10,8 +10,14 @@ import { buildExitConnectors, buildStationPlatforms } from '../utils/rail'
 import type { RailStationFeatureProperties } from '../utils/rail'
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
+// 접속 위치를 알아내기 전까지 보여줄 자리이자, 알아내지 못했을 때 그대로 머무를 자리
 const DEFAULT_CENTER: [number, number] = [127.1086, 37.3606] // 성남시 분당구 정자동
 const DEFAULT_ZOOM = 15
+// 접속한 IP의 대략적인 위치로 지도를 열기 위해 쓰는 조회 서비스. 키가 없어도 되고 CORS가 열려 있다.
+// GPS(navigator.geolocation)와 달리 권한 팝업이 뜨지 않는 대신 정확도는 도시 수준이다
+const IP_LOCATION_URL = 'https://ipapi.co/json/'
+// 조회가 늦어지면 지도가 뒤늦게 튀어 보이므로, 이 시간을 넘기면 기본 위치에 그대로 둔다
+const IP_LOCATION_TIMEOUT_MS = 3000
 // 좌하단 축척이 "50 km"로 표시되는 지점(zoom 약 6.95) — 이보다 더 축소되지 않게 한다
 const MIN_ZOOM = 6.95
 
@@ -347,6 +353,34 @@ export function MapView() {
       map.flyTo({ center: [nearestLng, nearestLat], duration: 600 })
     }
     map.on('moveend', snapBackToKoreaIfNeeded)
+
+    // 접속한 IP의 대략적인 위치로 지도를 옮긴다. 조회가 끝나기 전에 사용자가 이미 지도를
+    // 움직였거나 검색으로 다른 곳을 봤다면 건드리지 않는다
+    let userMovedMap = false
+    const markUserMoved = () => {
+      userMovedMap = true
+    }
+    map.on('dragstart', markUserMoved)
+    map.on('zoomstart', markUserMoved)
+    const ipLocationAbort = new AbortController()
+    const ipLocationTimer = setTimeout(() => ipLocationAbort.abort(), IP_LOCATION_TIMEOUT_MS)
+    void (async () => {
+      try {
+        const res = await fetch(IP_LOCATION_URL, { signal: ipLocationAbort.signal })
+        if (!res.ok) return
+        const { latitude, longitude } = (await res.json()) as { latitude?: number; longitude?: number }
+        if (typeof latitude !== 'number' || typeof longitude !== 'number') return
+        // 해외 IP(VPN 등)로 잡히면 지도가 한국 밖으로 날아가므로 기본 위치에 그대로 둔다
+        const inKorea =
+          longitude >= KOREA_BOUNDS.west && longitude <= KOREA_BOUNDS.east && latitude >= KOREA_BOUNDS.south && latitude <= KOREA_BOUNDS.north
+        if (!inKorea || userMovedMap || mapRef.current !== map) return
+        map.jumpTo({ center: [longitude, latitude], zoom: DEFAULT_ZOOM })
+      } catch {
+        // 조회 실패·시간 초과·차단 — 기본 위치(정자동)를 그대로 쓴다
+      } finally {
+        clearTimeout(ipLocationTimer)
+      }
+    })()
 
     // bottom 코너는 addControl이 항상 맨 앞에 끼워 넣으므로(prepend), 나중에 추가하는 나침반이
     // DOM상 확대/축소보다 앞에 온다. 코너를 가로 방향 flex로 바꿔 그 DOM 순서대로 왼쪽부터 배치한다.
@@ -746,6 +780,8 @@ export function MapView() {
     return () => {
       if (idleTimer) clearTimeout(idleTimer)
       if (rainbowFrame) cancelAnimationFrame(rainbowFrame)
+      clearTimeout(ipLocationTimer)
+      ipLocationAbort.abort()
       map.remove()
       mapRef.current = null
     }
