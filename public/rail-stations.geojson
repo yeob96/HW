@@ -1,0 +1,13 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"kind":"badge","ref":"2","color":"#00A23F","offset":[-11,0]},"geometry":{"type":"Point","coordinates":[127.0276,37.4979]}},
+{"type":"Feature","properties":{"kind":"badge","ref":"신분당","color":"#B81B30","offset":[11,0]},"geometry":{"type":"Point","coordinates":[127.0276,37.4979]}},
+{"type":"Feature","properties":{"kind":"label","name":"강남역"},"geometry":{"type":"Point","coordinates":[127.0276,37.4979]}},
+{"type":"Feature","properties":{"kind":"exit","ref":"1"},"geometry":{"type":"Point","coordinates":[127.02845,37.49845]}},
+{"type":"Feature","properties":{"kind":"exit","ref":"2"},"geometry":{"type":"Point","coordinates":[127.02875,37.49815]}},
+{"type":"Feature","properties":{"kind":"exit","ref":"3"},"geometry":{"type":"Point","coordinates":[127.02865,37.49745]}},
+{"type":"Feature","properties":{"kind":"exit","ref":"5"},"geometry":{"type":"Point","coordinates":[127.02755,37.49695]}},
+{"type":"Feature","properties":{"kind":"exit","ref":"6"},"geometry":{"type":"Point","coordinates":[127.02675,37.49735]}},
+{"type":"Feature","properties":{"kind":"exit","ref":"7"},"geometry":{"type":"Point","coordinates":[127.02645,37.49805]}},
+{"type":"Feature","properties":{"kind":"exit","ref":"10"},"geometry":{"type":"Point","coordinates":[127.02685,37.49865]}},
+{"type":"Feature","properties":{"kind":"exit","ref":"11"},"geometry":{"type":"Point","coordinates":[127.02745,37.49895]}}
+]}

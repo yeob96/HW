@@ -61,6 +61,71 @@ const RAIL_ROUTE_SOURCE_ID = 'rail-routes'
 const RAIL_ROUTE_LAYER_ID = 'rail-routes-line'
 const RAIL_ROUTE_DATA_URL = '/rail-routes.geojson'
 
+// 역 이름+호선 배지, 출입구 번호 — scripts/fetch-rail-stations.mjs로 미리 받아둔 정적 파일을 읽는다.
+// 환승역은 같은 이름의 배지(kind: 'badge')가 노선 수만큼, 이름 라벨(kind: 'label')은 하나만 나온다
+const RAIL_STATION_SOURCE_ID = 'rail-stations'
+const RAIL_STATION_DATA_URL = '/rail-stations.geojson'
+const RAIL_BADGE_LAYER_ID = 'rail-station-badges'
+const RAIL_LABEL_LAYER_ID = 'rail-station-labels'
+const RAIL_EXIT_LAYER_ID = 'rail-station-exits'
+// 역/출입구 배지는 개별 역이 구분될 만큼 확대했을 때만 보여준다
+const RAIL_STATION_MIN_ZOOM = 15
+const RAIL_EXIT_MIN_ZOOM = 16
+const BADGE_ICON_SIZE = 22 // 화면에 보이는 지름(px)
+const EXIT_ICON_SIZE = 18
+const ICON_PIXEL_RATIO = 2 // 레티나 화면 대비 2배 해상도로 그려서 pixelRatio로 등록한다
+const EXIT_BADGE_COLOR = '#facc15' // 이미지 속 노란 출구 동그라미
+const EXIT_BADGE_TEXT_COLOR = '#111827'
+
+interface RailStationFeatureProperties {
+  kind: 'badge' | 'label' | 'exit'
+  ref?: string
+  color?: string
+  name?: string
+  offset?: [number, number]
+}
+
+// 배경색 밝기에 따라 글자를 검정/흰색 중 읽기 쉬운 쪽으로 고른다
+function pickReadableTextColor(bgColor: string): string {
+  const hex = /^#?([0-9a-f]{6})$/i.exec(bgColor.replace('#', ''))
+  if (!hex) return '#ffffff'
+  const n = parseInt(hex[1], 16)
+  const r = (n >> 16) & 255
+  const g = (n >> 8) & 255
+  const b = n & 255
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6 ? '#111827' : '#ffffff'
+}
+
+// 원+글자 배지를 캔버스에 그려 MapLibre 아이콘으로 쓸 ImageData를 만든다
+function createBadgeImageData(text: string, bgColor: string, textColor: string, size: number): ImageData {
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return new ImageData(size, size)
+
+  const radius = size / 2
+  ctx.beginPath()
+  ctx.arc(radius, radius, radius - 1, 0, Math.PI * 2)
+  ctx.fillStyle = bgColor
+  ctx.fill()
+  ctx.lineWidth = 1.5
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)'
+  ctx.stroke()
+
+  ctx.fillStyle = textColor
+  ctx.font = `bold ${Math.round(size * 0.5)}px sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, radius, radius + 1, size - 4)
+
+  return ctx.getImageData(0, 0, size, size)
+}
+
+const badgeIconId = (ref: string, color: string) => `rail-badge-${color}-${ref}`
+const exitIconId = (ref: string) => `rail-exit-${ref}`
+
 // 지도에 10분간 동작이 없으면 도로에 무지개색이 흐르는 LED 효과를 켠다
 const RAINBOW_IDLE_MS = 10 * 60 * 1000
 const RAINBOW_HUE_CYCLE_MS = 1200
@@ -429,6 +494,82 @@ export function MapView() {
         firstSymbolLayerId,
       )
       roadAndRailLayerIds.push(RAIL_ROUTE_LAYER_ID)
+
+      // 역 이름+호선 배지, 출입구 번호. 배지/출입구 아이콘은 (색, 번호) 조합마다 하나씩만 만들면 되므로
+      // 정적 파일을 먼저 받아 어떤 조합이 실제로 쓰이는지 확인한 뒤 addImage로 등록하고 나서 레이어를 얹는다
+      void (async () => {
+        const res = await fetch(RAIL_STATION_DATA_URL)
+        if (!res.ok) return
+        const stationData: GeoJSON.FeatureCollection = await res.json()
+
+        const registeredIcons = new Set<string>()
+        for (const feature of stationData.features) {
+          const props = feature.properties as RailStationFeatureProperties
+          if (props.kind === 'badge' && props.ref && props.color) {
+            const id = badgeIconId(props.ref, props.color)
+            if (registeredIcons.has(id)) continue
+            registeredIcons.add(id)
+            const image = createBadgeImageData(props.ref, props.color, pickReadableTextColor(props.color), BADGE_ICON_SIZE * ICON_PIXEL_RATIO)
+            map.addImage(id, image, { pixelRatio: ICON_PIXEL_RATIO })
+          } else if (props.kind === 'exit' && props.ref) {
+            const id = exitIconId(props.ref)
+            if (registeredIcons.has(id)) continue
+            registeredIcons.add(id)
+            const image = createBadgeImageData(props.ref, EXIT_BADGE_COLOR, EXIT_BADGE_TEXT_COLOR, EXIT_ICON_SIZE * ICON_PIXEL_RATIO)
+            map.addImage(id, image, { pixelRatio: ICON_PIXEL_RATIO })
+          }
+        }
+
+        map.addSource(RAIL_STATION_SOURCE_ID, { type: 'geojson', data: stationData })
+
+        map.addLayer({
+          id: RAIL_BADGE_LAYER_ID,
+          type: 'symbol',
+          source: RAIL_STATION_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'badge'],
+          minzoom: RAIL_STATION_MIN_ZOOM,
+          layout: {
+            'icon-image': ['concat', 'rail-badge-', ['get', 'color'], '-', ['get', 'ref']],
+            'icon-offset': ['get', 'offset'],
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          },
+        })
+
+        map.addLayer({
+          id: RAIL_LABEL_LAYER_ID,
+          type: 'symbol',
+          source: RAIL_STATION_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'label'],
+          minzoom: RAIL_STATION_MIN_ZOOM,
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': 12,
+            'text-offset': [0, 1.4],
+            'text-anchor': 'top',
+          },
+          paint: {
+            'text-color': '#1f2937',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1.5,
+          },
+        })
+
+        map.addLayer({
+          id: RAIL_EXIT_LAYER_ID,
+          type: 'symbol',
+          source: RAIL_STATION_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'exit'],
+          minzoom: RAIL_EXIT_MIN_ZOOM,
+          layout: {
+            'icon-image': ['concat', 'rail-exit-', ['get', 'ref']],
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          },
+        })
+      })().catch(() => {
+        // 정적 파일이 없거나(스크립트 미실행) 형식이 어긋나면 조용히 건너뛴다 — 나머지 지도 기능엔 영향 없음
+      })
 
       // 고속도로/국도/간선·보조간선(원래 주황·노란색)을 항상 어두운 회색으로 표시한다
       const DARK_GRAY_ROAD_COLOR = '#cbd5e1'
