@@ -65,6 +65,9 @@ const RAINBOW_DASH_SEQUENCE = [
   [0, 3.5, 3, 0.5],
 ]
 
+// 나침반 바늘 아이콘 — 북쪽을 가리키는 위쪽 삼각형만 빨간색으로, 남쪽은 기존처럼 회색으로 둔다
+const COMPASS_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 29 29"><path fill="#ef4444" d="m10.5 14 4-8 4 8z"/><path fill="#ccc" d="m10.5 16 4 8 4-8z"/></svg>`
+
 const FILTERS = ['매매', '유형', '평형', '가격']
 
 const CATEGORY_TABS = ['분양', '이야기', '재건축', '경매', '뉴스', '오늘']
@@ -135,6 +138,11 @@ export function MapView() {
       bottomRightCorner.style.display = 'flex'
       bottomRightCorner.style.flexDirection = 'row'
       bottomRightCorner.style.alignItems = 'flex-end'
+
+      const compassIcon = bottomRightCorner.querySelector<HTMLElement>('.maplibregl-ctrl-compass .maplibregl-ctrl-icon')
+      if (compassIcon) {
+        compassIcon.style.backgroundImage = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(COMPASS_ICON_SVG)}")`
+      }
     }
 
     map.on('load', () => {
