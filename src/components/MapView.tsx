@@ -488,9 +488,20 @@ export function MapView() {
       }
       const roadAndRailLayerIds = [...motorwayLayerIds, ...yellowRoadLayerIds, ...otherRoadAndRailLayerIds]
 
-      // 노선별 실제 색 레이어 — 미리 받아둔 정적 GeoJSON을 그대로 얹는다 (텍스트 라벨 아래,
-      // 나머지 선/면 위에 오도록 첫 symbol 레이어 바로 아래에 끼워 넣는다)
-      const firstSymbolLayerId = map.getStyle()?.layers?.find((l) => l.type === 'symbol')?.id
+      // 노선별 실제 색 레이어 — 미리 받아둔 정적 GeoJSON을 그대로 얹는다.
+      // 첫 symbol 레이어(road_one_way_arrow) 아래에 넣으면 그 뒤에 오는 bridge_*(고가·교량 도로),
+      // building, building-3d, 경계선 등 비-symbol 레이어 25개가 노선 위에 그려져 노선이 가려진다.
+      // 마지막 비-symbol 레이어 다음에 끼워 넣어 모든 면/선 위에, 글자 라벨 아래에 오게 한다
+      const styleLayers = map.getStyle()?.layers ?? []
+      let lastNonSymbolIndex = -1
+      for (let i = styleLayers.length - 1; i >= 0; i--) {
+        if (styleLayers[i].type !== 'symbol') {
+          lastNonSymbolIndex = i
+          break
+        }
+      }
+      // 뒤에 라벨 레이어가 하나도 없으면 undefined가 되어 맨 위에 얹힌다
+      const railBeforeId = styleLayers[lastNonSymbolIndex + 1]?.id
       map.addSource(RAIL_ROUTE_SOURCE_ID, { type: 'geojson', data: RAIL_ROUTE_DATA_URL })
       map.addLayer(
         {
@@ -500,11 +511,11 @@ export function MapView() {
           layout: { 'line-cap': 'round', 'line-join': 'round' },
           paint: {
             'line-color': ['get', 'color'],
-            'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1.5, 16, 4],
-            'line-opacity': 0.9,
+            'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 16, 2.5],
+            'line-opacity': 1,
           },
         },
-        firstSymbolLayerId,
+        railBeforeId,
       )
       roadAndRailLayerIds.push(RAIL_ROUTE_LAYER_ID)
 
