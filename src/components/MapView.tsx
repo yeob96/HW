@@ -55,7 +55,13 @@ const BUILDING_3D_MIN_ZOOM = 14
 // 지도 타일(transportation 레이어)에는 철도가 class/subclass(rail, subway 등)만 있고
 // 몇 호선인지 알 수 있는 정보가 없다. 노선별 실제 색은 OSM의 노선(route relation) 태그에만 있어서
 // Overpass API로 현재 화면 범위의 노선 geometry+colour를 따로 받아 별도 레이어로 얹는다
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
+// 공개 무료 API라 하나가 막히거나 느릴 때가 있어 순서대로 시도할 미러 목록을 둔다
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+]
+const OVERPASS_ATTEMPT_TIMEOUT_MS = 8000
 const RAIL_ROUTE_SOURCE_ID = 'rail-routes'
 const RAIL_ROUTE_LAYER_ID = 'rail-routes-line'
 const RAIL_ROUTE_DEBOUNCE_MS = 600
@@ -106,6 +112,29 @@ function railRoutesToGeoJSON(elements: OverpassElement[]): GeoJSON.FeatureCollec
     }
   }
   return { type: 'FeatureCollection', features }
+}
+
+// 미러를 순서대로 시도해 하나가 막히거나 느려도(무료 공개 API라 자주 있는 일) 다음 미러로 넘어간다.
+// outerSignal이 취소되면(더 최신 이동으로 이 요청이 낡아지면) 즉시 중단한다
+async function fetchOverpass(query: string, outerSignal: AbortSignal): Promise<{ elements: OverpassElement[] } | null> {
+  for (const url of OVERPASS_URLS) {
+    if (outerSignal.aborted) return null
+    const attemptController = new AbortController()
+    const onOuterAbort = () => attemptController.abort()
+    outerSignal.addEventListener('abort', onOuterAbort)
+    const timeoutId = setTimeout(() => attemptController.abort(), OVERPASS_ATTEMPT_TIMEOUT_MS)
+    try {
+      const res = await fetch(url, { method: 'POST', body: query, signal: attemptController.signal })
+      if (!res.ok) continue
+      return await res.json()
+    } catch {
+      continue // 이 미러가 실패/타임아웃 — 다음 미러로
+    } finally {
+      clearTimeout(timeoutId)
+      outerSignal.removeEventListener('abort', onOuterAbort)
+    }
+  }
+  return null
 }
 
 // 지도에 10분간 동작이 없으면 도로에 무지개색이 흐르는 LED 효과를 켠다
@@ -499,14 +528,9 @@ export function MapView() {
 
           const bounds = map.getBounds()
           const query = `[out:json][timeout:25];relation["route"~"${RAIL_ROUTE_TYPES}"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()})->.routes;.routes out body;way(r.routes)->.ways;.ways out geom;`
-          try {
-            const res = await fetch(OVERPASS_URL, { method: 'POST', body: query, signal: controller.signal })
-            const data: { elements: OverpassElement[] } = await res.json()
-            if (requestToken !== railFetchToken) return // 그 사이 더 최신 요청이 시작됨
-            source.setData(railRoutesToGeoJSON(data.elements))
-          } catch {
-            // Overpass 요청 실패/취소 — 기존 표시를 그대로 둔다
-          }
+          const data = await fetchOverpass(query, controller.signal)
+          if (requestToken !== railFetchToken || !data) return // 그 사이 더 최신 요청이 시작됐거나, 모든 미러가 실패함
+          source.setData(railRoutesToGeoJSON(data.elements))
         }, RAIL_ROUTE_DEBOUNCE_MS)
       }
       refreshRailRoutes()
