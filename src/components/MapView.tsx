@@ -81,6 +81,48 @@ const COMPASS_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="29" hei
 const GEOCODE_SEARCH_URL = 'https://nominatim.openstreetmap.org/search'
 const SEARCH_DEBOUNCE_MS = 400
 
+// 자체적으로 도(道) 없이 시(市)가 곧 광역자치단체인 특별시/광역시/특별자치시
+const METRO_CITIES = new Set([
+  '서울특별시',
+  '부산광역시',
+  '대구광역시',
+  '인천광역시',
+  '광주광역시',
+  '대전광역시',
+  '울산광역시',
+  '세종특별자치시',
+])
+
+interface NominatimAddress {
+  province?: string
+  city?: string
+  borough?: string
+}
+
+interface NominatimItem {
+  place_id: number
+  display_name: string
+  lat: string
+  lon: string
+  boundingbox: [string, string, string, string]
+  category: string
+  address?: NominatimAddress
+}
+
+// 동/도로명/건물 등 세부 주소까지 붙는 display_name 대신, 행정구역(지명) 결과는
+// "시/도 시/군/구"까지만 보여준다. 아파트·학교 같은 POI는 이름을 구분해야 하므로 그대로 둔다
+function formatSearchLabel(item: NominatimItem): string {
+  const isRegionType = item.category === 'boundary' || item.category === 'place'
+  if (!isRegionType || !item.address) return item.display_name
+
+  const { province, city, borough } = item.address
+  const isMetro = !province && city && METRO_CITIES.has(city)
+  const sido = province ?? (isMetro ? city : undefined)
+  const sigungu = province ? city : borough
+
+  return [sido, sigungu].filter(Boolean).join(' ') || item.display_name
+}
+
 interface SearchResult {
   id: number
   label: string
@@ -150,15 +192,14 @@ export function MapView() {
     }
 
     const timer = setTimeout(async () => {
-      const url = `${GEOCODE_SEARCH_URL}?format=jsonv2&countrycodes=kr&accept-language=ko&limit=5&q=${encodeURIComponent(query)}`
+      const url = `${GEOCODE_SEARCH_URL}?format=jsonv2&countrycodes=kr&accept-language=ko&limit=5&addressdetails=1&q=${encodeURIComponent(query)}`
       try {
         const res = await fetch(url)
-        const data: Array<{ place_id: number; display_name: string; lat: string; lon: string; boundingbox: [string, string, string, string] }> =
-          await res.json()
+        const data: NominatimItem[] = await res.json()
         setSearchResults(
           data.map((item) => ({
             id: item.place_id,
-            label: item.display_name,
+            label: formatSearchLabel(item),
             lat: Number(item.lat),
             lon: Number(item.lon),
             boundingBox: item.boundingbox.map(Number) as SearchResult['boundingBox'],
