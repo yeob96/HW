@@ -1,6 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { AttributionControl, Map as MapLibreMap, NavigationControl, ScaleControl } from 'maplibre-gl'
+import type {
+  DataDrivenPropertyValueSpecification,
+  ExpressionSpecification,
+} from '@maplibre/maplibre-gl-style-spec'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
@@ -22,12 +26,17 @@ const GREEN_HIDE_MAX_ZOOM = 12.6
 const BUILDING_HIDE_MAX_ZOOM = 10.3
 // 시/군/구 경계선(admin_level 3~6)의 기본 스타일과, 도로가 숨겨졌을 때 더 도드라지게 보여줄 스타일
 const CITY_BOUNDARY_LAYER = 'boundary_3'
-const CITY_BOUNDARY_DEFAULT_PAINT = {
+type CityBoundaryPaint = {
+  'line-color': string
+  'line-dasharray': number[]
+  'line-width': DataDrivenPropertyValueSpecification<number>
+}
+const CITY_BOUNDARY_DEFAULT_PAINT: CityBoundaryPaint = {
   'line-color': 'hsl(0, 0%, 70%)',
   'line-dasharray': [1, 1],
-  'line-width': ['interpolate', ['linear', 1], ['zoom'], 7, 1, 11, 2],
+  'line-width': ['interpolate', ['linear'], ['zoom'], 7, 1, 11, 2],
 }
-const CITY_BOUNDARY_EMPHASIZED_PAINT = {
+const CITY_BOUNDARY_EMPHASIZED_PAINT: CityBoundaryPaint = {
   'line-color': '#64748b',
   'line-dasharray': [1, 0], // gap 0 → 점선이 아닌 얇은 실선으로 보인다
   'line-width': 1,
@@ -417,7 +426,10 @@ export function MapView() {
         'parking',
       ]
       for (const id of ['poi_r1', 'poi_r7', 'poi_r20', 'poi_transit']) {
-        const filter = map.getFilter(id)
+        // getFilter()는 구형(legacy) 필터와 boolean까지 포함한 유니온을 돌려주는데, ['all', ...]은
+        // 표현식과 구형 필터를 섞을 수 없어 그대로 합치면 타입이 좁혀지지 않는다.
+        // 이 스타일(OpenFreeMap Liberty)의 필터는 전부 표현식이라 표현식으로 간주한다
+        const filter = map.getFilter(id) as ExpressionSpecification | undefined
         if (filter) {
           map.setFilter(id, ['all', filter, ['!', ['in', ['get', 'class'], ['literal', HIDDEN_POI_CLASSES]]]])
         }
@@ -427,7 +439,7 @@ export function MapView() {
 
       // 하천 데이터가 강/천 구분 없이 모두 class: river로 들어와 있어, 이름 끝 글자가
       // "천"으로 끝나는 것만 라벨을 숨기고 "강"으로 끝나는 이름(한강 등)은 남긴다
-      const waterwayLabelFilter = map.getFilter('waterway_line_label')
+      const waterwayLabelFilter = map.getFilter('waterway_line_label') as ExpressionSpecification | undefined
       if (waterwayLabelFilter) {
         map.setFilter('waterway_line_label', [
           'all',
@@ -453,7 +465,8 @@ export function MapView() {
           map.setLayoutProperty(layer.id, 'visibility', 'none')
           continue
         }
-        const textField = layer.layout?.['text-field']
+        // text-field는 symbol 레이어에만 존재한다 — 좁히지 않으면 layout 유니온에서 인덱싱할 수 없다
+        const textField = layer.type === 'symbol' ? layer.layout?.['text-field'] : undefined
         if (Array.isArray(textField) && JSON.stringify(textField).includes('name:nonlatin')) {
           // 지명 라벨을 "영문\n한글" 대신 한글만 표시하도록 덮어쓴다.
           // 해외 지명은 name:nonlatin이 현지 문자(도쿄="東京都")라서, 한국어 번역명인
@@ -652,10 +665,11 @@ export function MapView() {
           // building-3d는 여기서 건드리지 않는다 — 3D on/off 토글이 그 visibility를 독립적으로 관리한다
           map.setLayoutProperty('building', 'visibility', shouldHideBuildings ? 'none' : 'visible')
 
+          // Object.entries로 순회하면 키가 string으로 넓어져 setPaintProperty의 키 타입과 맞지 않는다
           const boundaryPaint = shouldHideBuildings ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
-          for (const [prop, value] of Object.entries(boundaryPaint)) {
-            map.setPaintProperty(CITY_BOUNDARY_LAYER, prop, value)
-          }
+          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-color', boundaryPaint['line-color'])
+          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-dasharray', boundaryPaint['line-dasharray'])
+          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-width', boundaryPaint['line-width'])
         }
       }
       applyZoomDependentStyle()
