@@ -17,7 +17,12 @@ const CLUSTER_RADIUS_DEG = 0.008
 const BADGE_SPACING_PX = 20
 const OUTPUT_PATH = new URL('../public/rail-stations.geojson', import.meta.url)
 
-const query = `[out:json][timeout:180];relation["route"~"${ROUTE_TYPES}"](${BOUNDS.south},${BOUNDS.west},${BOUNDS.north},${BOUNDS.east})->.routes;.routes out body;node(r.routes)->.stopnodes;.stopnodes out body;node["railway"="subway_entrance"](${BOUNDS.south},${BOUNDS.west},${BOUNDS.north},${BOUNDS.east})->.entrances;.entrances out body;`
+// 코레일 광역전철(수인분당·경의중앙·공항철도·GTX 등)은 route=train으로 태깅돼 있어 함께 받는다.
+// ref와 colour가 모두 있는 것만 받아 KTX·SRT 같은 도시간 열차는 제외한다
+// (scripts/fetch-rail-routes.mjs와 같은 기준)
+// 경계 사각형에 규슈가 걸려 일본 노선이 섞이므로 나라 경계(ISO 3166-1 = KR)로 받는다
+// (scripts/fetch-rail-routes.mjs와 같은 기준)
+const query = `[out:json][timeout:180];area["ISO3166-1"="KR"]->.kr;(relation["route"~"${ROUTE_TYPES}"](area.kr);relation["route"="train"]["ref"]["colour"](area.kr););out body;node(r)->.stopnodes;.stopnodes out body;node["railway"="subway_entrance"](area.kr)->.entrances;.entrances out body;`
 
 // Overpass는 User-Agent가 없거나 curl 기본값 같은 요청을 봇으로 보고 406으로 막는 경우가 있다.
 // 요청마다 이 값을 붙여야 한다(Overpass 사용 정책이 요구하는 부분이기도 하다)

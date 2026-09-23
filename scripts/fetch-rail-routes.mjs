@@ -13,7 +13,13 @@ const ROUTE_TYPES = '^(subway|light_rail|tram)$'
 const DEFAULT_COLOR = '#6b7280'
 const OUTPUT_PATH = new URL('../public/rail-routes.geojson', import.meta.url)
 
-const query = `[out:json][timeout:180];relation["route"~"${ROUTE_TYPES}"](${BOUNDS.south},${BOUNDS.west},${BOUNDS.north},${BOUNDS.east})->.routes;.routes out body;way(r.routes)->.ways;.ways out geom;`
+// 수인분당선·경의중앙선·공항철도·GTX처럼 코레일이 운영하는 광역전철은 OSM에서 subway가 아니라
+// route=train으로 태깅돼 있어서 위 목록만으로는 통째로 빠진다. 그렇다고 route=train을 전부 받으면
+// KTX·SRT·무궁화 같은 도시간 열차까지 딸려오는데, 그런 노선은 ref와 colour가 비어 있는 반면
+// 광역전철은 둘 다 갖고 있어서 이 두 태그의 유무로 가른다
+// 경계 사각형의 남동쪽 모서리에 규슈(후쿠오카 130.4E/33.6N)가 걸려서, 사각형으로 받으면
+// JR 규슈 노선까지 딸려온다. 나라 경계(ISO 3166-1 = KR)로 받아 한국 노선만 남긴다
+const query = `[out:json][timeout:180];area["ISO3166-1"="KR"]->.kr;(relation["route"~"${ROUTE_TYPES}"](area.kr);relation["route"="train"]["ref"]["colour"](area.kr););out body;way(r)->.ways;.ways out geom;`
 
 // Overpass는 User-Agent가 없거나 curl 기본값 같은 요청을 봇으로 보고 406으로 막는 경우가 있다.
 // 요청마다 이 값을 붙여야 한다(Overpass 사용 정책이 요구하는 부분이기도 하다)
