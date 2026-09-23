@@ -139,9 +139,17 @@ export function MapView() {
       bottomRightCorner.style.flexDirection = 'row'
       bottomRightCorner.style.alignItems = 'flex-end'
 
-      const compassIcon = bottomRightCorner.querySelector<HTMLElement>('.maplibregl-ctrl-compass .maplibregl-ctrl-icon')
+      const compassButton = bottomRightCorner.querySelector<HTMLElement>('.maplibregl-ctrl-compass')
+      const compassGroup = compassButton?.closest<HTMLElement>('.maplibregl-ctrl-group')
+      const compassIcon = compassButton?.querySelector<HTMLElement>('.maplibregl-ctrl-icon')
       if (compassIcon) {
         compassIcon.style.backgroundImage = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(COMPASS_ICON_SVG)}")`
+      }
+      // 기본 사각형 버튼 모양을 원형으로 바꾼다
+      if (compassButton) compassButton.style.borderRadius = '50%'
+      if (compassGroup) {
+        compassGroup.style.borderRadius = '50%'
+        compassGroup.style.overflow = 'hidden'
       }
     }
 
