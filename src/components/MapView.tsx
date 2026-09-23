@@ -36,6 +36,7 @@ const COLORED_AREA_LAYER_IDS = [
   'landcover_wetland',
   'landuse_residential', // 시가지/주거지 음영 — 축소했을 때 보이던 회색 얼룩의 정체
   'aeroway_fill',
+  'landuse_hospital', // 병원 부지 핑크색 음영
 ]
 
 // building-3d 레이어의 minzoom과 동일 — 이 zoom부터 건물이 입체로 표시될 수 있다
