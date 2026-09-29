@@ -2,15 +2,6 @@
 // 순수 함수만 두어 브라우저 없이도 실제 데이터로 검증할 수 있게 분리했다
 // (scripts/check-rail-geometry.ts 참고)
 
-// 노선 색이 비어 있는 경우의 기본값 — fetch 스크립트의 DEFAULT_COLOR와 같다
-const FALLBACK_LINE_COLOR = '#6b7280'
-// 출입구가 지도 위에 홀로 떠 있으면 무엇의 출구인지 알 수 없어서, 가장 가까운 역과 잇는
-// 연결선을 그려 노선에서 뻗어 나온 것처럼 보이게 한다. 이 거리 안에 역이 없는 출입구
-// (OSM에 해당 노선이 없는 경우 등)는 연결선 없이 단독으로 표시된다
-export const EXIT_CONNECTOR_MAX_DISTANCE_M = 400
-// 가까운 역만 비교하도록 위경도를 이 크기(약 1.1km)의 격자로 나눠 색인한다 —
-// 연결 반경보다 넉넉히 커서 인접 3x3 칸만 보면 후보를 놓치지 않는다
-const STATION_GRID_DEG = 0.01
 // 역은 노선 위에 얹힌 굵은 막대(승강장)로 표시한다. 역 중심에서 이 거리 안에서
 // 해당 호선의 선형을 찾아 그 위에 막대를 올린다
 export const PLATFORM_ANCHOR_MAX_DISTANCE_M = 300
@@ -21,26 +12,19 @@ export const PLATFORM_HALF_LENGTH_M = 130
 export type Coordinate = [lon: number, lat: number]
 
 export interface RailStationFeatureProperties {
-  kind: 'badge' | 'label' | 'exit' | 'connector' | 'platform'
+  kind: 'badge' | 'label' | 'exit' | 'platform'
   ref?: string
   color?: string
   name?: string
   offset?: [number, number]
 }
 
-// 역 하나를 지나는 호선 하나의 선형과, 그 선형 위에서 역이 놓인 지점.
-// 막대와 출입구 연결선이 같은 계산 결과를 나눠 쓴다
-export interface StationTrack {
+// 역 하나를 지나는 호선 하나의 선형과, 그 선형 위에서 역이 놓인 지점
+interface StationTrack {
   station: Coordinate
   color: string
   coordinates: Coordinate[]
   anchor: PolylineAnchor
-}
-
-interface StationPoint {
-  lon: number
-  lat: number
-  color: string
 }
 
 // 위경도 차이를 미터로 환산한다 — 한 역 주변(수백 m)만 다루므로 평면 근사로 충분하다
@@ -51,85 +35,6 @@ function approxDistanceMeters(aLon: number, aLat: number, bLon: number, bLat: nu
   const dx = (aLon - bLon) * Math.cos(midLat) * toRad * EARTH_RADIUS_M
   const dy = (aLat - bLat) * toRad * EARTH_RADIUS_M
   return Math.hypot(dx, dy)
-}
-
-const gridKey = (lon: number, lat: number) => `${Math.floor(lon / STATION_GRID_DEG)},${Math.floor(lat / STATION_GRID_DEG)}`
-
-// 각 출입구를 가장 가까운 역과 잇는 선 feature를 만든다.
-// 그 역을 지나는 호선 중 출입구에서 가장 가까운 노선에 수직으로 내린 지점에서 선을 시작해,
-// 노선 옆에서 출구가 직각으로 뻗어 나온 것처럼 보이게 하고 색도 그 호선 색을 쓴다.
-// 막대(260m)에만 수선을 내리면 막대 끝보다 바깥에 있는 출입구(약 13%)는 막대 끝점에 비스듬히
-// 붙으므로, 역 앞뒤로 연결 반경만큼 자른 노선 전체에 수선을 내린다.
-// 노선을 못 찾은 역(노선 파일을 못 읽은 경우 등)은 전처럼 역 중심에서 잇고 첫 번째 호선 색을 쓴다
-export function buildExitConnectors(features: GeoJSON.Feature[], tracks: StationTrack[] = []): GeoJSON.Feature[] {
-  const grid = new Map<string, StationPoint[]>()
-  for (const feature of features) {
-    const props = feature.properties as RailStationFeatureProperties
-    if (props.kind !== 'badge' || feature.geometry.type !== 'Point') continue
-    const [lon, lat] = feature.geometry.coordinates
-    const key = gridKey(lon, lat)
-    const cell = grid.get(key)
-    // 환승역은 같은 좌표에 배지가 여러 개다 — 첫 번째(=첫 호선 색)만 남긴다
-    if (cell) {
-      if (!cell.some((s) => s.lon === lon && s.lat === lat)) cell.push({ lon, lat, color: props.color ?? FALLBACK_LINE_COLOR })
-    } else {
-      grid.set(key, [{ lon, lat, color: props.color ?? FALLBACK_LINE_COLOR }])
-    }
-  }
-
-  const tracksByStation = new Map<string, { color: string; coordinates: Coordinate[] }[]>()
-  for (const track of tracks) {
-    const key = endpointKey(track.station)
-    // 출입구는 역 중심에서 연결 반경 안에 있고, 역이 놓인 노선 위 지점은 역 중심에서 최대
-    // PLATFORM_ANCHOR_MAX_DISTANCE_M 떨어질 수 있으므로 그 둘을 합한 만큼 잘라야 수선의 발이 잘린 끝에 걸리지 않는다
-    const halfLength = EXIT_CONNECTOR_MAX_DISTANCE_M + PLATFORM_ANCHOR_MAX_DISTANCE_M
-    const entry = { color: track.color, coordinates: sliceAroundAnchor(track.coordinates, track.anchor, halfLength) }
-    const bucket = tracksByStation.get(key)
-    if (bucket) bucket.push(entry)
-    else tracksByStation.set(key, [entry])
-  }
-
-  const connectors: GeoJSON.Feature[] = []
-  for (const feature of features) {
-    const props = feature.properties as RailStationFeatureProperties
-    if (props.kind !== 'exit' || feature.geometry.type !== 'Point') continue
-    const [lon, lat] = feature.geometry.coordinates
-
-    let nearest: StationPoint | null = null
-    let nearestDistance = EXIT_CONNECTOR_MAX_DISTANCE_M
-    const cx = Math.floor(lon / STATION_GRID_DEG)
-    const cy = Math.floor(lat / STATION_GRID_DEG)
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        for (const station of grid.get(`${cx + dx},${cy + dy}`) ?? []) {
-          const distance = approxDistanceMeters(lon, lat, station.lon, station.lat)
-          if (distance < nearestDistance) {
-            nearestDistance = distance
-            nearest = station
-          }
-        }
-      }
-    }
-    if (!nearest) continue
-
-    let start: Coordinate = [nearest.lon, nearest.lat]
-    let color = nearest.color
-    let bestDistance = Infinity
-    for (const track of tracksByStation.get(endpointKey([nearest.lon, nearest.lat])) ?? []) {
-      const anchor = projectOntoPolyline(lon, lat, track.coordinates)
-      if (!anchor || anchor.distance >= bestDistance) continue
-      bestDistance = anchor.distance
-      start = interpolate(track.coordinates[anchor.index], track.coordinates[anchor.index + 1], anchor.t)
-      color = track.color
-    }
-
-    connectors.push({
-      type: 'Feature',
-      properties: { kind: 'connector', color },
-      geometry: { type: 'LineString', coordinates: [start, [lon, lat]] },
-    })
-  }
-  return connectors
 }
 
 interface RouteLine {
@@ -269,7 +174,7 @@ function stitchRouteLines(lines: RouteLine[]): RouteLine[] {
 
 // 역마다 그 역을 지나는 호선별 선형과, 선형 위에서 역이 놓인 지점을 찾는다.
 // 호선은 ref로 맞추고, ref가 비어 있는 일부 노선(공항 셔틀트레인 등)은 색으로 보완한다
-export function findStationTracks(stationFeatures: GeoJSON.Feature[], routeFeatures: GeoJSON.Feature[]): StationTrack[] {
+function findStationTracks(stationFeatures: GeoJSON.Feature[], routeFeatures: GeoJSON.Feature[]): StationTrack[] {
   // 같은 호선(ref+색)끼리 모아 조각을 이어 붙인 뒤, ref와 색으로 각각 찾을 수 있게 색인한다
   const groups = new Map<string, RouteLine[]>()
   for (const feature of routeFeatures) {
@@ -352,8 +257,8 @@ export function findStationTracks(stationFeatures: GeoJSON.Feature[], routeFeatu
 }
 
 // 역마다 호선별로 노선 위에 얹을 막대(승강장) feature를 만든다
-export function buildStationPlatforms(tracks: StationTrack[]): GeoJSON.Feature[] {
-  return tracks.map((track) => ({
+export function buildStationPlatforms(stationFeatures: GeoJSON.Feature[], routeFeatures: GeoJSON.Feature[]): GeoJSON.Feature[] {
+  return findStationTracks(stationFeatures, routeFeatures).map((track) => ({
     type: 'Feature',
     properties: { kind: 'platform', color: track.color },
     geometry: { type: 'LineString', coordinates: sliceAroundAnchor(track.coordinates, track.anchor, PLATFORM_HALF_LENGTH_M) },

@@ -6,8 +6,8 @@ import type {
   ExpressionSpecification,
 } from '@maplibre/maplibre-gl-style-spec'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { buildExitConnectors, buildStationPlatforms, findStationTracks } from '../utils/rail'
-import type { RailStationFeatureProperties, StationTrack } from '../utils/rail'
+import { buildStationPlatforms } from '../utils/rail'
+import type { RailStationFeatureProperties } from '../utils/rail'
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 // 접속 위치를 알아내기 전까지 보여줄 자리이자, 알아내지 못했을 때 그대로 머무를 자리
@@ -89,7 +89,6 @@ const RAIL_STATION_DATA_URL = '/rail-stations.geojson'
 const RAIL_BADGE_LAYER_ID = 'rail-station-badges'
 const RAIL_LABEL_LAYER_ID = 'rail-station-labels'
 const RAIL_EXIT_LAYER_ID = 'rail-station-exits'
-const RAIL_EXIT_CONNECTOR_LAYER_ID = 'rail-station-exit-connectors'
 const RAIL_PLATFORM_LAYER_ID = 'rail-station-platforms'
 // 역/출입구 배지는 개별 역이 구분될 만큼 확대했을 때만 보여준다
 const RAIL_STATION_MIN_ZOOM = 15
@@ -579,37 +578,15 @@ export function MapView() {
           }
         }
 
-        // 노선 파일을 못 읽으면 막대만 건너뛰고 나머지는 그대로 표시한다
-        let tracks: StationTrack[] = []
+        // 역 막대(승강장)를 같은 소스에 넣는다 — 노선 파일을 못 읽으면 막대만 건너뛰고 나머지는 그대로 표시한다
         if (routeRes.ok) {
           const routeData: GeoJSON.FeatureCollection = await routeRes.json()
-          tracks = findStationTracks(stationData.features, routeData.features)
+          stationData.features.push(...buildStationPlatforms(stationData.features, routeData.features))
         }
-        // 출입구↔역 연결선(kind: 'connector')과 역 막대를 같은 소스에 넣는다.
-        // 연결선은 가장 가까운 노선에서 직각으로 뻗는다
-        stationData.features.push(...buildExitConnectors(stationData.features, tracks), ...buildStationPlatforms(tracks))
 
         map.addSource(RAIL_STATION_SOURCE_ID, { type: 'geojson', data: stationData })
 
-        // 연결선은 노선 위·글자 아래로, 즉 노선 레이어와 같은 자리에 끼워 넣는다.
-        // 출입구 아이콘(나중에 맨 위에 얹힌다)이 선 끝을 덮어 이어진 것처럼 보인다
-        map.addLayer(
-          {
-            id: RAIL_EXIT_CONNECTOR_LAYER_ID,
-            type: 'line',
-            source: RAIL_STATION_SOURCE_ID,
-            filter: ['==', ['get', 'kind'], 'connector'],
-            minzoom: RAIL_EXIT_MIN_ZOOM,
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-color': ['get', 'color'],
-              'line-width': ['interpolate', ['linear'], ['zoom'], 16, 3, 18, 6],
-            },
-          },
-          railBeforeId,
-        )
-
-        // 역 막대(승강장) — 연결선 위, 배지 아래. 끝을 둥글리지 않아(butt) 직사각형으로 보인다
+        // 역 막대(승강장) — 노선 위, 배지 아래. 끝을 둥글리지 않아(butt) 직사각형으로 보인다
         map.addLayer(
           {
             id: RAIL_PLATFORM_LAYER_ID,
