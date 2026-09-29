@@ -6,8 +6,8 @@ import type {
   ExpressionSpecification,
 } from '@maplibre/maplibre-gl-style-spec'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { buildExitConnectors, buildStationPlatforms } from '../utils/rail'
-import type { RailStationFeatureProperties } from '../utils/rail'
+import { buildExitConnectors, buildStationPlatforms, findStationTracks } from '../utils/rail'
+import type { RailStationFeatureProperties, StationTrack } from '../utils/rail'
 
 const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 // 접속 위치를 알아내기 전까지 보여줄 자리이자, 알아내지 못했을 때 그대로 머무를 자리
@@ -579,13 +579,15 @@ export function MapView() {
           }
         }
 
-        // 출입구↔역 연결선을 같은 소스에 넣는다 (kind: 'connector')
-        stationData.features.push(...buildExitConnectors(stationData.features))
         // 노선 파일을 못 읽으면 막대만 건너뛰고 나머지는 그대로 표시한다
+        let tracks: StationTrack[] = []
         if (routeRes.ok) {
           const routeData: GeoJSON.FeatureCollection = await routeRes.json()
-          stationData.features.push(...buildStationPlatforms(stationData.features, routeData.features))
+          tracks = findStationTracks(stationData.features, routeData.features)
         }
+        // 출입구↔역 연결선(kind: 'connector')과 역 막대를 같은 소스에 넣는다.
+        // 연결선은 가장 가까운 노선에서 직각으로 뻗는다
+        stationData.features.push(...buildExitConnectors(stationData.features, tracks), ...buildStationPlatforms(tracks))
 
         map.addSource(RAIL_STATION_SOURCE_ID, { type: 'geojson', data: stationData })
 

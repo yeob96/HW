@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import {
   buildExitConnectors,
   buildStationPlatforms,
+  findStationTracks,
   EXIT_CONNECTOR_MAX_DISTANCE_M,
   PLATFORM_ANCHOR_MAX_DISTANCE_M,
   PLATFORM_HALF_LENGTH_M,
@@ -26,6 +27,25 @@ const lineLength = (coordinates: number[][]): number => {
   return total
 }
 
+const pointToPolyline = (lon: number, lat: number, coordinates: number[][]): number => {
+  const mLat = 111320
+  const mLon = 111320 * Math.cos(lat * (Math.PI / 180))
+  let best = Infinity
+  for (let i = 0; i + 1 < coordinates.length; i++) {
+    const ax = (coordinates[i][0] - lon) * mLon
+    const ay = (coordinates[i][1] - lat) * mLat
+    const bx = (coordinates[i + 1][0] - lon) * mLon
+    const by = (coordinates[i + 1][1] - lat) * mLat
+    const dx = bx - ax
+    const dy = by - ay
+    const lengthSq = dx * dx + dy * dy
+    const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / lengthSq))
+    const d = Math.hypot(ax + t * dx, ay + t * dy)
+    if (d < best) best = d
+  }
+  return best
+}
+
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'))
 const stations = read('../public/rail-stations.geojson')
 const routes = read('../public/rail-routes.geojson')
@@ -41,8 +61,13 @@ const check = (label: string, ok: boolean, detail: string) => {
 
 // ---------- 출입구 연결선 ----------
 console.log(`\n[출입구 연결선]  출입구 ${exits.length}개, 역 ${badges.length}개 배지`)
+// 연결선과 막대가 같은 역별 선형 계산을 나눠 쓴다 (시간은 막대 쪽에 따로 잰다)
 let t0 = performance.now()
-const connectors = buildExitConnectors(stations.features)
+const tracks = findStationTracks(stations.features, routes.features)
+const platforms = buildStationPlatforms(tracks)
+const platformMs = performance.now() - t0
+t0 = performance.now()
+const connectors = buildExitConnectors(stations.features, tracks)
 const connectorMs = performance.now() - t0
 
 // brute-force로 같은 답이 나오는지 (격자 색인이 후보를 놓치지 않는지)
@@ -59,16 +84,60 @@ for (const e of exits) {
 }
 check('격자 색인 = brute-force', connectors.length === bruteCount, `${connectors.length}개 vs ${bruteCount}개`)
 
-const overLength = connectors.filter((c: any) => lineLength(c.geometry.coordinates) > EXIT_CONNECTOR_MAX_DISTANCE_M + 0.5)
+// 연결선은 노선 위 수선의 발에서 시작한다. 노선은 역 중심에서 최대 PLATFORM_ANCHOR_MAX_DISTANCE_M 떨어질 수 있다
+const overLength = connectors.filter((c: any) => lineLength(c.geometry.coordinates) > EXIT_CONNECTOR_MAX_DISTANCE_M + PLATFORM_ANCHOR_MAX_DISTANCE_M)
 check('모든 연결선이 반경 이내', overLength.length === 0, `초과 ${overLength.length}개`)
 check('연결선마다 색이 있음', connectors.every((c: any) => /^#[0-9a-f]{6}$/i.test(c.properties.color)), `${new Set(connectors.map((c: any) => c.properties.color)).size}가지 색`)
+
+// 연결선 시작점이 같은 색 노선 위에 있고, 노선과 직각으로 만나는지 본다.
+// 시작점이 노선의 꼭짓점(꺾이는 지점이나 종착역 끝)에 걸리면 한 선분과 직각일 수 없으므로 따로 센다
+const toXY = (lon: number, lat: number, refLat: number): [number, number] => [lon * 111320 * Math.cos(refLat * (Math.PI / 180)), lat * 111320]
+const routeLinesByColor = new Map<string, number[][][]>()
+for (const f of routes.features) {
+  if (f.geometry.type !== 'LineString') continue
+  const list = routeLinesByColor.get(f.properties.color) ?? []
+  list.push(f.geometry.coordinates)
+  routeLinesByColor.set(f.properties.color, list)
+}
+let offRoute = 0
+let atVertex = 0
+const angleErrors: number[] = []
+for (const c of connectors as any[]) {
+  const [[sLon, sLat], [eLon, eLat]] = c.geometry.coordinates
+  let best: { d: number; a: number[]; b: number[] } | null = null
+  for (const line of routeLinesByColor.get(c.properties.color) ?? []) {
+    for (let i = 0; i + 1 < line.length; i++) {
+      // 선분 양 끝이 모두 0.03도(약 3km) 밖이면 볼 필요가 없다 (노선 꼭짓점 간격은 최대 2km)
+      if (Math.min(Math.abs(line[i][0] - sLon), Math.abs(line[i + 1][0] - sLon)) > 0.03) continue
+      if (Math.min(Math.abs(line[i][1] - sLat), Math.abs(line[i + 1][1] - sLat)) > 0.03) continue
+      const d = pointToPolyline(sLon, sLat, [line[i], line[i + 1]])
+      if (!best || d < best.d) best = { d, a: line[i], b: line[i + 1] }
+    }
+  }
+  if (!best || best.d > 0.5) {
+    offRoute++
+    continue
+  }
+  if ([best.a, best.b].some(([lon, lat]) => meters(lon, lat, sLon, sLat) < 0.5)) {
+    atVertex++
+    continue
+  }
+  const [ax, ay] = toXY(best.a[0], best.a[1], sLat)
+  const [bx, by] = toXY(best.b[0], best.b[1], sLat)
+  const [sx, sy] = toXY(sLon, sLat, sLat)
+  const [ex, ey] = toXY(eLon, eLat, sLat)
+  if (Math.hypot(ex - sx, ey - sy) < 1) continue
+  const cos = ((bx - ax) * (ex - sx) + (by - ay) * (ey - sy)) / (Math.hypot(bx - ax, by - ay) * Math.hypot(ex - sx, ey - sy))
+  angleErrors.push(Math.abs(90 - (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI))
+}
+angleErrors.sort((a, b) => a - b)
+check('연결선이 같은 색 노선 위에서 시작', offRoute === 0, `노선 밖 ${offRoute}개`)
+check('노선과 직각으로 만남', angleErrors[angleErrors.length - 1] < 1, `직각 오차 최대 ${angleErrors[angleErrors.length - 1].toFixed(2)}도 (${angleErrors.length}개)`)
+console.log(`  (노선이 꺾이는 꼭짓점이나 노선 끝에서 뻗는 연결선 ${atVertex}개 — 직각 판정에서 제외)`)
 console.log(`  (${connectors.length}/${exits.length}개 연결, ${Math.round(connectorMs)}ms)`)
 
 // ---------- 역 막대 ----------
 console.log(`\n[역 막대]`)
-t0 = performance.now()
-const platforms = buildStationPlatforms(stations.features, routes.features)
-const platformMs = performance.now() - t0
 
 check('배지 수를 넘지 않음', platforms.length <= badges.length, `막대 ${platforms.length}개 / 배지 ${badges.length}개`)
 
@@ -134,24 +203,6 @@ for (const f of routes.features) {
   const list = routesByColor.get(f.properties.color) ?? []
   list.push({ coordinates, bounds: [west, south, east, north] })
   routesByColor.set(f.properties.color, list)
-}
-const pointToPolyline = (lon: number, lat: number, coordinates: number[][]): number => {
-  const mLat = 111320
-  const mLon = 111320 * Math.cos(lat * (Math.PI / 180))
-  let best = Infinity
-  for (let i = 0; i + 1 < coordinates.length; i++) {
-    const ax = (coordinates[i][0] - lon) * mLon
-    const ay = (coordinates[i][1] - lat) * mLat
-    const bx = (coordinates[i + 1][0] - lon) * mLon
-    const by = (coordinates[i + 1][1] - lat) * mLat
-    const dx = bx - ax
-    const dy = by - ay
-    const lengthSq = dx * dx + dy * dy
-    const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / lengthSq))
-    const d = Math.hypot(ax + t * dx, ay + t * dy)
-    if (d < best) best = d
-  }
-  return best
 }
 const deviations: number[] = []
 for (const p of platforms as any[]) {
