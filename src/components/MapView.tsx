@@ -28,8 +28,11 @@ const KOREA_BOUNDS = { west: 124.5, south: 33.0, east: 131.95, north: 38.65 }
 // 가까운 한국 영역으로 되돌아간다
 const KOREA_MIN_VISIBLE_RATIO = 0.4
 
-// 좌하단 축척이 "1 km"로 표시되는 지점(zoom 약 12.6)부터 산지 등 색 있는 영역과 도로·철도를 모두 숨긴다
-const GREEN_HIDE_MAX_ZOOM = 12.6
+// 좌하단 축척이 "1 km" 이상으로 표시되는 동안 산지·학교 등 색 있는 영역과 도로·철도를 모두 숨기고
+// 시/군/구 경계선을 실선으로 바꾼다. 같은 zoom이라도 위도에 따라 축척이 달라지므로 zoom 값 대신
+// 축척 막대(ScaleControl 기본 최대 너비 100px)가 나타내는 거리를 직접 계산해 판단한다
+const SCALE_BAR_MAX_WIDTH_PX = 100
+const GREEN_HIDE_MIN_SCALE_METERS = 1000
 // 좌하단 축척이 "5 km"로 표시되는 지점(이 위도 기준 zoom 약 10.25~10.5 사이)부터는 건물까지 숨긴다
 const BUILDING_HIDE_MAX_ZOOM = 10.3
 // 시/군/구 경계선(admin_level 3~6)의 기본 스타일과, 도로가 숨겨졌을 때 더 도드라지게 보여줄 스타일
@@ -734,31 +737,34 @@ export function MapView() {
       let greenAndRoadsHidden = false
       let buildingsHidden = false
       const applyZoomDependentStyle = () => {
-        const zoom = map.getZoom()
-        const shouldHideGreenAndRoads = zoom <= GREEN_HIDE_MAX_ZOOM
-        const shouldHideBuildings = zoom <= BUILDING_HIDE_MAX_ZOOM
+        // ScaleControl과 같은 방식으로, 화면 세로 중앙에서 축척 막대 최대 너비만큼의 실제 거리를 잰다
+        const y = map.getContainer().clientHeight / 2
+        const scaleBarMeters = map.unproject([0, y]).distanceTo(map.unproject([SCALE_BAR_MAX_WIDTH_PX, y]))
+        const shouldHideGreenAndRoads = scaleBarMeters >= GREEN_HIDE_MIN_SCALE_METERS
+        const shouldHideBuildings = map.getZoom() <= BUILDING_HIDE_MAX_ZOOM
 
         if (shouldHideGreenAndRoads !== greenAndRoadsHidden) {
           greenAndRoadsHidden = shouldHideGreenAndRoads
           const visibility = shouldHideGreenAndRoads ? 'none' : 'visible'
           for (const id of COLORED_AREA_LAYER_IDS) map.setLayoutProperty(id, 'visibility', visibility)
           for (const id of roadAndRailLayerIds) map.setLayoutProperty(id, 'visibility', visibility)
+
+          // Object.entries로 순회하면 키가 string으로 넓어져 setPaintProperty의 키 타입과 맞지 않는다
+          const boundaryPaint = shouldHideGreenAndRoads ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
+          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-color', boundaryPaint['line-color'])
+          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-dasharray', boundaryPaint['line-dasharray'])
+          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-width', boundaryPaint['line-width'])
         }
 
         if (shouldHideBuildings !== buildingsHidden) {
           buildingsHidden = shouldHideBuildings
           // building-3d는 여기서 건드리지 않는다 — 3D on/off 토글이 그 visibility를 독립적으로 관리한다
           map.setLayoutProperty('building', 'visibility', shouldHideBuildings ? 'none' : 'visible')
-
-          // Object.entries로 순회하면 키가 string으로 넓어져 setPaintProperty의 키 타입과 맞지 않는다
-          const boundaryPaint = shouldHideBuildings ? CITY_BOUNDARY_EMPHASIZED_PAINT : CITY_BOUNDARY_DEFAULT_PAINT
-          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-color', boundaryPaint['line-color'])
-          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-dasharray', boundaryPaint['line-dasharray'])
-          map.setPaintProperty(CITY_BOUNDARY_LAYER, 'line-width', boundaryPaint['line-width'])
         }
       }
       applyZoomDependentStyle()
-      map.on('zoom', applyZoomDependentStyle)
+      // 위도가 바뀌면 같은 zoom에서도 축척이 달라지므로 zoom뿐 아니라 이동 시에도 다시 판단한다
+      map.on('move', applyZoomDependentStyle)
 
       let toggleVisible = false
       const checkBuilding3DToggleVisibility = () => {
