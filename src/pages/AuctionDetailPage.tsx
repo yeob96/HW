@@ -132,12 +132,20 @@ export function AuctionDetailPage() {
             {item.itemNo > 1 ? ` 물건번호 ${item.itemNo}` : ''}
           </p>
         </div>
-        <button
-          onClick={handleToggleLike}
-          className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-slate-300"
-        >
-          {liked ? <span className="text-red-500">♥ 관심물건</span> : '♡ 관심물건'}
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            to={`/analysis?target=${encodeURIComponent(item.id)}`}
+            className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            AI 등기분석
+          </Link>
+          <button
+            onClick={handleToggleLike}
+            className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-slate-300"
+          >
+            {liked ? <span className="text-red-500">♥ 관심물건</span> : '♡ 관심물건'}
+          </button>
+        </div>
       </header>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

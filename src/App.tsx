@@ -3,6 +3,7 @@ import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-ro
 import { AuthModal } from './components/AuthModal'
 import { AuctionDetailPage } from './pages/AuctionDetailPage'
 import { AuctionListPage } from './pages/AuctionListPage'
+import { AnalysisPage } from './pages/AnalysisPage'
 import { HealthPage } from './pages/HealthPage'
 import { InputPage } from './pages/InputPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -106,6 +107,7 @@ function App() {
             {[
               { to: '/', label: '지역 찾기' },
               { to: '/auction', label: '경매' },
+              { to: '/analysis', label: 'AI 등기분석' },
             ].map((menu) => (
               <NavLink
                 key={menu.to}
@@ -133,6 +135,7 @@ function App() {
         <Route path="/auction" element={<AuctionListPage />} />
         <Route path="/auction/:id" element={<AuctionDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/health" element={<HealthPage />} />
         <Route path="/TEST" element={<TestPage />} />
       </Routes>

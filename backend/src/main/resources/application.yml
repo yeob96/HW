@@ -4,9 +4,20 @@ spring:
   profiles:
     # 로컬은 H2로 뜬다. Docker PostgreSQL을 쓰려면 SPRING_PROFILES_ACTIVE=postgres
     default: local
+  servlet:
+    multipart:
+      # 등기부등본 PDF는 보통 1MB 안쪽이지만 여러 장짜리 스캔본을 감안한다
+      max-file-size: 20MB
+      max-request-size: 25MB
 
 server:
   port: 8080
+  servlet:
+    encoding:
+      # 멀티파트 폼 필드(사건번호 등)에 한글이 들어온다. force 를 켜지 않으면
+      # 요청 파라미터가 ISO-8859-1 로 해석돼 "2025타경" 같은 값이 깨진다
+      charset: UTF-8
+      force: true
 
 management:
   endpoints:
@@ -21,6 +32,12 @@ app:
   # Vite 개발 서버
   cors:
     allowed-origins: http://localhost:5173
+  analysis:
+    # 분석 결과를 재사용하는 기간. 이 시간이 지난 뒤 다시 요청하면 수집부터 새로 돈다
+    cache-ttl: PT24H
+  registry:
+    # 등본 원문 보관 위치. 원문은 공유 대상이 아니라 분석에만 쓰인다
+    storage-dir: ./data/registry
   # 온비드 공매 API (공공데이터포털)
   onbid:
     base-url: http://openapi.onbid.co.kr/openapi/services
