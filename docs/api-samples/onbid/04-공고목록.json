@@ -1,0 +1,143 @@
+{
+  "_meta": {
+    "수집일시": "2026-11-17T13:02:35.277Z",
+    "서비스": "OnbidPbancListSrvc2",
+    "오퍼레이션": "getPbancList2",
+    "요청파라미터": {
+      "cltrTypeCd": "0001",
+      "prptDivCd": "0007",
+      "opbdDtStart": "20261018",
+      "opbdDtEnd": "20261217",
+      "pageNo": "1",
+      "numOfRows": "5",
+      "resultType": "json"
+    },
+    "HTTP상태": 200,
+    "비고": "서비스키는 제외하고 기록했습니다."
+  },
+  "응답": {
+    "header": {
+      "resultCode": "00",
+      "resultMsg": "NORMAL_CODE"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "pbancMngNo": "202606-17433-00",
+            "onbidPbancNo": 891141,
+            "pbctNo": 10069125,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "bidDivCd": "0001",
+            "bidDivNm": "전자입찰",
+            "onbidPbancNm": "(부산지역본부) 2026년 제012차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "부산지역본부",
+            "pbancYmd": "20260610",
+            "pbctNsq": "037",
+            "pbctsn": null,
+            "cltrBidBgngDt": "202610191400",
+            "cltrBidEndDt": "202610211700",
+            "cltrOpbdDt": "202610221100"
+          },
+          {
+            "pbancMngNo": "202606-17463-00",
+            "onbidPbancNo": 891171,
+            "pbctNo": 10069228,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "bidDivCd": "0001",
+            "bidDivNm": "전자입찰",
+            "onbidPbancNm": "(광주전남지역본부) 2026년 제012차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "광주전남지역본부",
+            "pbancYmd": "20260610",
+            "pbctNsq": "037",
+            "pbctsn": null,
+            "cltrBidBgngDt": "202610191400",
+            "cltrBidEndDt": "202610211700",
+            "cltrOpbdDt": "202610221100"
+          },
+          {
+            "pbancMngNo": "202606-17449-00",
+            "onbidPbancNo": 891153,
+            "pbctNo": 10069134,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "bidDivCd": "0001",
+            "bidDivNm": "전자입찰",
+            "onbidPbancNm": "(경기지역본부) 2026년 제019차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "경기지역본부",
+            "pbancYmd": "20260610",
+            "pbctNsq": "037",
+            "pbctsn": null,
+            "cltrBidBgngDt": "202610191400",
+            "cltrBidEndDt": "202610211700",
+            "cltrOpbdDt": "202610221100"
+          },
+          {
+            "pbancMngNo": "202606-17349-00",
+            "onbidPbancNo": 891057,
+            "pbctNo": 10068877,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "bidDivCd": "0001",
+            "bidDivNm": "전자입찰",
+            "onbidPbancNm": "(전북지역본부) 2026년 제012차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "전북지역본부",
+            "pbancYmd": "20260610",
+            "pbctNsq": "037",
+            "pbctsn": null,
+            "cltrBidBgngDt": "202610191400",
+            "cltrBidEndDt": "202610211700",
+            "cltrOpbdDt": "202610221100"
+          },
+          {
+            "pbancMngNo": "202606-17388-00",
+            "onbidPbancNo": 891096,
+            "pbctNo": 10069004,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "bidDivCd": "0001",
+            "bidDivNm": "전자입찰",
+            "onbidPbancNm": "(서울서부지역본부) 2026년 제012차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "서울서부지역본부",
+            "pbancYmd": "20260610",
+            "pbctNsq": "037",
+            "pbctsn": null,
+            "cltrBidBgngDt": "202610191400",
+            "cltrBidEndDt": "202610211700",
+            "cltrOpbdDt": "202610221100"
+          }
+        ]
+      },
+      "numOfRows": 5,
+      "pageNo": 1,
+      "totalCount": 1100
+    }
+  }
+}

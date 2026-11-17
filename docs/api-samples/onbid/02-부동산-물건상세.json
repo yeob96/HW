@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "수집일시": "2026-11-17T13:02:34.175Z",
+    "서비스": "OnbidRlstDtlSrvc2",
+    "오퍼레이션": "getRlstDtlInf2",
+    "요청파라미터": {
+      "cltrMngNo": "2022-0100-002855",
+      "pbctCdtnNo": "3912726",
+      "pageNo": "1",
+      "numOfRows": "5",
+      "resultType": "json"
+    },
+    "HTTP상태": 403,
+    "비고": "서비스키는 제외하고 기록했습니다."
+  },
+  "응답": {
+    "OpenAPI_ServiceResponse": {
+      "cmmMsgHeader": {
+        "errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR",
+        "returnAuthMsg": "등록되지 않은 서비스키",
+        "returnReasonCode": "30"
+      }
+    }
+  }
+}
