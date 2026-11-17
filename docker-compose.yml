@@ -1,0 +1,32 @@
+# 경공매 정보 사이트 — 로컬 개발용 PostgreSQL
+#
+#   docker compose up -d            # 띄우기
+#   docker compose logs -f postgres # 로그
+#   docker compose down             # 내리기 (데이터는 볼륨에 남음)
+#   docker compose down -v          # 데이터까지 지우기
+#
+# 띄운 뒤 백엔드는 postgres 프로파일로 실행한다:
+#   cd backend && SPRING_PROFILES_ACTIVE=postgres ./gradlew bootRun
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: gongmae-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-gongmae}
+      POSTGRES_USER: ${DB_USER:-gongmae}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gongmae}
+      TZ: Asia/Seoul
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-gongmae} -d ${DB_NAME:-gongmae}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:

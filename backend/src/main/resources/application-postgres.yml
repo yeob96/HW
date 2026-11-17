@@ -1,0 +1,16 @@
+# docker compose up -d 로 띄운 PostgreSQL에 붙을 때 쓰는 프로파일.
+# SPRING_PROFILES_ACTIVE=postgres ./gradlew bootRun
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:gongmae}
+    username: ${DB_USER:gongmae}
+    password: ${DB_PASSWORD:gongmae}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    # 엔티티가 생기기 전까지는 update, 스키마가 확정되면 validate + 마이그레이션으로 옮긴다
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect

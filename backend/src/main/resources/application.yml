@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: gongmae-api
+  profiles:
+    # 로컬은 H2로 뜬다. Docker PostgreSQL을 쓰려면 SPRING_PROFILES_ACTIVE=postgres
+    default: local
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  # Vite 개발 서버
+  cors:
+    allowed-origins: http://localhost:5173
+  # 온비드 공매 API (공공데이터포털)
+  onbid:
+    base-url: http://openapi.onbid.co.kr/openapi/services
+    service-key: ${DATA_GO_KR_SERVICE_KEY:}
+  # 국토교통부 실거래가 API (공공데이터포털)
+  molit:
+    base-url: http://apis.data.go.kr/1613000
+    service-key: ${DATA_GO_KR_SERVICE_KEY:}
+  # 카카오 로컬 API (주소 → 좌표 · 법정동코드)
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY:}
+    local-base-url: https://dapi.kakao.com/v2/local
