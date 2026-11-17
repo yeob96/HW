@@ -180,3 +180,126 @@ export function subscribeAnalysis(
 
   return () => source.close()
 }
+
+// ───────────────────────── 신규 물건 알림 ─────────────────────────
+
+export interface AlertSubscription {
+  id: string
+  name: string
+  enabled: boolean
+  sdNm: string | null
+  sggNm: string | null
+  usgMclsIds: string | null
+  prptDivCds: string | null
+  minPrice: number | null
+  maxPrice: number | null
+  maxLowstRatio: number | null
+  minUsbdNft: number | null
+  createdAt: string
+}
+
+export type SubscriptionInput = Omit<AlertSubscription, 'id' | 'enabled' | 'createdAt'> & {
+  id?: string
+  userId: string
+}
+
+export interface AlertNotification {
+  id: string
+  subscriptionName: string
+  onbidCltrno: number
+  cltrMngNo: string | null
+  title: string
+  body: string
+  createdAt: string
+  readAt: string | null
+}
+
+export interface Inbox {
+  unreadCount: number
+  notifications: AlertNotification[]
+}
+
+export interface CollectorStatus {
+  configured: boolean
+  totalItems: number
+  pendingAlert: number
+  lastRunAt: string | null
+  lastRunBaseline: boolean | null
+  lastRunCalls: number | null
+  lastRunCreated: number | null
+  lastRunUpdated: number | null
+  lastRunNotifications: number | null
+  lastRunDurationMs: number | null
+  lastRunError: string | null
+}
+
+async function apiSend<T>(path: string, method: string, body?: unknown): Promise<T | null> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const message = await res
+      .json()
+      .then((payload: { message?: string }) => payload.message)
+      .catch(() => null)
+    throw new ApiError(message ?? `${res.status} ${res.statusText}`, res.status)
+  }
+  if (res.status === 204) return null
+  return (await res.json()) as T
+}
+
+export function fetchSubscriptions(userId: string): Promise<AlertSubscription[]> {
+  return apiGet<AlertSubscription[]>(`/api/alerts/subscriptions?userId=${encodeURIComponent(userId)}`)
+}
+
+export function saveSubscription(input: SubscriptionInput): Promise<AlertSubscription> {
+  return apiSend<AlertSubscription>('/api/alerts/subscriptions', 'POST', input) as Promise<AlertSubscription>
+}
+
+export function setSubscriptionEnabled(id: string, userId: string, enabled: boolean): Promise<null> {
+  const query = `userId=${encodeURIComponent(userId)}&enabled=${enabled}`
+  return apiSend<null>(`/api/alerts/subscriptions/${id}/enabled?${query}`, 'POST') as Promise<null>
+}
+
+export function deleteSubscription(id: string, userId: string): Promise<null> {
+  return apiSend<null>(
+    `/api/alerts/subscriptions/${id}?userId=${encodeURIComponent(userId)}`,
+    'DELETE',
+  ) as Promise<null>
+}
+
+export function fetchInbox(userId: string): Promise<Inbox> {
+  return apiGet<Inbox>(`/api/alerts/notifications?userId=${encodeURIComponent(userId)}`)
+}
+
+export function markNotificationRead(id: string, userId: string): Promise<null> {
+  return apiSend<null>(
+    `/api/alerts/notifications/${id}/read?userId=${encodeURIComponent(userId)}`,
+    'POST',
+  ) as Promise<null>
+}
+
+export function markAllNotificationsRead(userId: string): Promise<null> {
+  return apiSend<null>(
+    `/api/alerts/notifications/read-all?userId=${encodeURIComponent(userId)}`,
+    'POST',
+  ) as Promise<null>
+}
+
+export function fetchCollectorStatus(): Promise<CollectorStatus> {
+  return apiGet<CollectorStatus>('/api/collector/status')
+}
+
+export function runCollector(): Promise<CollectorStatus> {
+  return apiSend<CollectorStatus>('/api/collector/run', 'POST') as Promise<CollectorStatus>
+}
+
+/** 새 알림 스트림. 개수만 오므로 받으면 목록을 다시 부른다 */
+export function subscribeAlerts(userId: string, onAlert: () => void): () => void {
+  const source = new EventSource(`${BASE_URL}/api/alerts/stream?userId=${encodeURIComponent(userId)}`)
+  source.addEventListener('alert', () => onAlert())
+  source.onerror = () => source.close()
+  return () => source.close()
+}

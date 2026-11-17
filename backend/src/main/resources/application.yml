@@ -1,4 +1,10 @@
 spring:
+  # 저장소 루트의 .env 를 설정 소스로 읽는다 (없으면 그냥 넘어간다).
+  # 운영에서는 환경변수로 주고, 로컬에서는 .env 하나로 프론트·백엔드가 같은 키를 쓴다.
+  config:
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:./.env[.properties]
   application:
     name: gongmae-api
   profiles:
@@ -38,10 +44,19 @@ app:
   registry:
     # 등본 원문 보관 위치. 원문은 공유 대상이 아니라 분석에만 쓰인다
     storage-dir: ./data/registry
-  # 온비드 공매 API (공공데이터포털)
+  # 온비드 공매 API (공공데이터포털). 기관코드 B010003
+  # 실호출로 확인: 서비스명·오퍼레이션명 양쪽에 접미사 2 가 붙는다
   onbid:
-    base-url: http://openapi.onbid.co.kr/openapi/services
+    base-url: https://apis.data.go.kr/B010003
     service-key: ${DATA_GO_KR_SERVICE_KEY:}
+    # 한 번에 받아오는 행 수. 5000까지 정상 동작을 확인했다
+    page-size: 5000
+    # 개발계정 일일 호출 한도가 있어 한 번의 수집에서 쓰는 호출 수를 묶어 둔다
+    max-calls-per-run: 20
+    # 수집 주기. 전량 수집은 처음 한 번만 하고 이후에는 최종수정일 기준 증분으로 돈다
+    collect-interval: PT1H
+    # 애플리케이션이 뜰 때 바로 한 번 돌릴지. 끄면 POST /api/collector/run 으로 직접 돌린다
+    collect-on-startup: false
   # 국토교통부 실거래가 API (공공데이터포털)
   molit:
     base-url: http://apis.data.go.kr/1613000

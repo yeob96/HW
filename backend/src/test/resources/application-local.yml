@@ -1,0 +1,29 @@
+# 테스트 전용 — 운영/개발용 local 프로파일 설정을 덮어쓴다.
+# 개발용은 파일 기반 H2 라서, 테스트가 그대로 쓰면 개발 중 수집해 둔 데이터를 건드린다.
+# 테스트는 매번 빈 인메모리 DB 에서 시작한다.
+spring:
+  datasource:
+    url: jdbc:h2:mem:gongmae-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  h2:
+    console:
+      enabled: false
+
+# 테스트 중에 외부 API 를 부르거나 스케줄러가 도는 일이 없도록 비워 둔다
+app:
+  onbid:
+    service-key: ''
+    collect-initial-delay: PT24H
+    collect-interval: PT24H
+  registry:
+    storage-dir: ./build/test-registry
+
+logging:
+  level:
+    org.hibernate.SQL: info
