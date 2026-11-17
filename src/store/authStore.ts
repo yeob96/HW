@@ -12,6 +12,8 @@ export interface MockUser {
   dislikedDongCodes: string[]
   likedTransactionIds: string[]
   dislikedTransactionIds: string[]
+  /** 관심 경매물건 (`${사건번호}-${물건번호}`) */
+  likedAuctionIds: string[]
 }
 
 type Result = { ok: true } | { ok: false; error: string }
@@ -32,6 +34,7 @@ interface AuthState {
   toggleDislike: (dongCode: string) => void
   toggleLikeTransaction: (transactionId: string) => void
   toggleDislikeTransaction: (transactionId: string) => void
+  toggleLikeAuction: (auctionId: string) => void
 }
 
 /** liked/disliked 두 목록 중 하나에서 id를 토글하고, 반대쪽 목록에서는 제거한다. */
@@ -68,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
           dislikedDongCodes: [],
           likedTransactionIds: [],
           dislikedTransactionIds: [],
+          likedAuctionIds: [],
         }
         set((state) => ({ users: [...state.users, user] }))
         return { ok: true }
@@ -157,12 +161,34 @@ export const useAuthStore = create<AuthState>()(
           }),
         })
       },
+
+      toggleLikeAuction: (auctionId) => {
+        const { users, currentUserId } = get()
+        if (!currentUserId) return
+        set({
+          users: users.map((u) => {
+            if (u.id !== currentUserId) return u
+            const liked = u.likedAuctionIds.includes(auctionId)
+              ? u.likedAuctionIds.filter((v) => v !== auctionId)
+              : [...u.likedAuctionIds, auctionId]
+            return { ...u, likedAuctionIds: liked }
+          }),
+        })
+      },
     }),
     {
       name: 'hw-auth',
-      version: 2,
-      // v1 계정에는 매물 좋아요/싫어요 필드가 없으므로 구버전 데이터는 초기화한다.
-      migrate: (_persistedState, version) => (version < 2 ? { users: [], currentUserId: null } : _persistedState),
+      version: 3,
+      migrate: (persistedState, version) => {
+        // v1 계정에는 매물 좋아요/싫어요 필드가 없으므로 구버전 데이터는 초기화한다.
+        if (version < 2) return { users: [], currentUserId: null }
+        // v2 → v3: 관심 경매물건 목록만 새로 추가되므로 기존 계정은 그대로 살린다.
+        const state = persistedState as { users?: MockUser[]; currentUserId?: string | null }
+        return {
+          users: (state.users ?? []).map((u) => ({ ...u, likedAuctionIds: u.likedAuctionIds ?? [] })),
+          currentUserId: state.currentUserId ?? null,
+        }
+      },
     },
   ),
 )

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Route, Routes, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthModal } from './components/AuthModal'
+import { AuctionDetailPage } from './pages/AuctionDetailPage'
+import { AuctionListPage } from './pages/AuctionListPage'
+import { HealthPage } from './pages/HealthPage'
 import { InputPage } from './pages/InputPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegionDetailPage } from './pages/RegionDetailPage'
@@ -80,16 +83,41 @@ function App() {
   return (
     <>
       <div className="flex items-center justify-between border-b border-slate-100 px-6 py-3">
-        <Link to="/" className="text-base font-bold tracking-tight text-slate-900 hover:text-slate-700">
-          HW
-        </Link>
+        <div className="flex items-center gap-5">
+          <Link to="/" className="text-base font-bold tracking-tight text-slate-900 hover:text-slate-700">
+            HW
+          </Link>
+          <nav className="flex items-center gap-4">
+            {[
+              { to: '/', label: '지역 찾기' },
+              { to: '/auction', label: '경매' },
+            ].map((menu) => (
+              <NavLink
+                key={menu.to}
+                to={menu.to}
+                end={menu.to === '/'}
+                className={({ isActive }) =>
+                  [
+                    'text-sm font-medium transition-colors',
+                    isActive ? 'text-emerald-700' : 'text-slate-500 hover:text-slate-700',
+                  ].join(' ')
+                }
+              >
+                {menu.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
         <AuthArea />
       </div>
       <Routes>
         <Route path="/" element={<InputPage />} />
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/results/:dongCode" element={<RegionDetailPage />} />
+        <Route path="/auction" element={<AuctionListPage />} />
+        <Route path="/auction/:id" element={<AuctionDetailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/health" element={<HealthPage />} />
         <Route path="/TEST" element={<TestPage />} />
       </Routes>
       <AuthModal open={authModalOpen} onClose={closeAuthModal} message={authModalMessage} />
