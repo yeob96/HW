@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AuthModal } from './components/AuthModal'
 import { AuctionDetailPage } from './pages/AuctionDetailPage'
 import { AuctionListPage } from './pages/AuctionListPage'
@@ -75,6 +75,21 @@ function AuthArea() {
   )
 }
 
+/**
+ * 라우트가 바뀌면 맨 위부터 보여준다.
+ * 목록 아래쪽 카드를 눌러 상세로 들어가면 스크롤 위치가 그대로 남아
+ * 상세 페이지가 중간부터 보이는 문제를 막는다.
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+
+  return null
+}
+
 function App() {
   const authModalOpen = useUiStore((s) => s.authModalOpen)
   const authModalMessage = useUiStore((s) => s.authModalMessage)
@@ -110,6 +125,7 @@ function App() {
         </div>
         <AuthArea />
       </div>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<InputPage />} />
         <Route path="/results" element={<ResultsPage />} />
