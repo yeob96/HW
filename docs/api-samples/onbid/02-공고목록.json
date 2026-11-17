@@ -1,13 +1,13 @@
 {
   "_meta": {
-    "수집일시": "2026-11-17T13:02:35.277Z",
+    "수집일시": "2026-11-17T15:00:32.220Z",
     "서비스": "OnbidPbancListSrvc2",
     "오퍼레이션": "getPbancList2",
     "요청파라미터": {
       "cltrTypeCd": "0001",
       "prptDivCd": "0007",
-      "opbdDtStart": "20261018",
-      "opbdDtEnd": "20261217",
+      "opbdDtStart": "20261019",
+      "opbdDtEnd": "20261218",
       "pageNo": "1",
       "numOfRows": "5",
       "resultType": "json"

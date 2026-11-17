@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "수집일시": "2026-11-17T15:00:33.484Z",
+    "서비스": "OnbidCltrBidRsltDtlSrvc2",
+    "오퍼레이션": "getCltrBidRsltDtl2",
+    "요청파라미터": {
+      "cltrMngNo": "2022-0100-002855",
+      "pageNo": "1",
+      "numOfRows": "5",
+      "resultType": "json"
+    },
+    "HTTP상태": 200,
+    "비고": "서비스키는 제외하고 기록했습니다."
+  },
+  "응답": {
+    "header": {
+      "resultCode": "00",
+      "resultMsg": "NORMAL_CODE"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "onbidCltrno": 1573873,
+            "cltrMngNo": "2022-0100-002855",
+            "pbctCdtnNo": 3912721,
+            "onbidPbancNo": 662306,
+            "pbctNo": 9621162,
+            "prptDivCd": "0005",
+            "prptDivNm": "기타일반재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "cltrUsgLclsCtgrId": "10000",
+            "cltrUsgMclsCtgrId": "10300",
+            "cltrUsgSclsCtgrId": "10301",
+            "cltrUsgLclsCtgrNm": "부동산",
+            "cltrUsgMclsCtgrNm": "상가용및업무용건물",
+            "cltrUsgSclsCtgrNm": "근린생활시설",
+            "onbidCltrNm": "경기도 평택시 장당동 483-6 201호 근린생활시설",
+            "usbdNft": 1,
+            "pbctNsq": "1",
+            "pbctsn": "1",
+            "apslEvlAmt": 256000000,
+            "lowstBidPrcIndctCont": "414720000",
+            "apslPrcCtrsLowstBidRto": null,
+            "frstCtrsLowstBidPrcRto": null,
+            "feeRate": null,
+            "cltrOpbdDt": "202202041000",
+            "pbctStatCd": "0011",
+            "pbctStatNm": "유찰",
+            "scfbAmt": null,
+            "vldBddrNope": 0,
+            "nfctBddrNope": 0,
+            "orgNm": "코리아신탁주식회사",
+            "pbancMngNo": "202201-02628-03",
+            "onbidPbancNm": "경기도 평택시 장당동 483-6 201,202,203,204,205호(개별매각) 공매공고",
+            "bidMthodCd": "0001",
+            "bidMthodNm": "최고가방식",
+            "cptnMthodCd": "0001",
+            "cptnMthodNm": "일반경쟁",
+            "totalamtUnpcDivCd": "0001",
+            "totalamtUnpcDivNm": "총액",
+            "cltrBidBgngDt": "202202031000",
+            "cltrBidEndDt": "202202031600",
+            "opbdBgngDt": "202202041004",
+            "opbdCmptnDt": "202202041004",
+            "apslPrcCtrsScfbPrcRto": 0,
+            "lowstBidCtrsScfbPrcRto": 0,
+            "pbctTdpsCont": "최저입찰가격*10%",
+            "bidDivCd": "0001",
+            "bidDivNm": "전자입찰",
+            "bidAmtClgCont": null,
+            "afsbRtrcnRsnCont": null,
+            "rtrcnRsnCont": "유효한 입찰자 없음"
+          }
+        ]
+      },
+      "numOfRows": 5,
+      "pageNo": 1,
+      "totalCount": 1
+    }
+  }
+}

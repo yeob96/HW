@@ -1,0 +1,133 @@
+{
+  "_meta": {
+    "수집일시": "2026-11-17T15:00:33.073Z",
+    "서비스": "OnbidPbancBidRsltListSrvc2",
+    "오퍼레이션": "getPbancBidRsltList2",
+    "요청파라미터": {
+      "cltrTypeCd": "0001",
+      "prptDivCd": "0007",
+      "opbdDtStart": "20260919",
+      "opbdDtEnd": "20261117",
+      "pageNo": "1",
+      "numOfRows": "5",
+      "resultType": "json"
+    },
+    "HTTP상태": 200,
+    "비고": "서비스키는 제외하고 기록했습니다."
+  },
+  "응답": {
+    "header": {
+      "resultCode": "00",
+      "resultMsg": "NORMAL_CODE"
+    },
+    "body": {
+      "items": {
+        "item": [
+          {
+            "onbidPbancNo": 895346,
+            "pbctNo": 10064732,
+            "pbancMngNo": "202607-21674-00",
+            "pbctNsq": "034",
+            "pbctsn": null,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "onbidPbancNm": "(서울동부지역본부) 2026년 제017차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "서울동부지역본부",
+            "pbancYmd": "20260708",
+            "cltrOpbdDt": "202610011100",
+            "exctStatCd": "0003",
+            "exctStatNm": "개찰완료"
+          },
+          {
+            "onbidPbancNo": 897353,
+            "pbctNo": 10064664,
+            "pbancMngNo": "202607-23678-00",
+            "pbctNsq": "034",
+            "pbctsn": null,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "onbidPbancNm": "(인천지역본부) 2026년 제015차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "인천지역본부",
+            "pbancYmd": "20260722",
+            "cltrOpbdDt": "202610011100",
+            "exctStatCd": "0003",
+            "exctStatNm": "개찰완료"
+          },
+          {
+            "onbidPbancNo": 895402,
+            "pbctNo": 10064908,
+            "pbancMngNo": "202607-21710-00",
+            "pbctNsq": "034",
+            "pbctsn": null,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "onbidPbancNm": "(대구경북지역본부) 2026년 제039차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "대구경북지역본부",
+            "pbancYmd": "20260708",
+            "cltrOpbdDt": "202610011100",
+            "exctStatCd": "0003",
+            "exctStatNm": "개찰완료"
+          },
+          {
+            "onbidPbancNo": 896438,
+            "pbctNo": 10064805,
+            "pbancMngNo": "202607-22763-00",
+            "pbctNsq": "034",
+            "pbctsn": null,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "onbidPbancNm": "(충북지역본부) 2026년 제027차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "충북지역본부",
+            "pbancYmd": "20260715",
+            "cltrOpbdDt": "202610011100",
+            "exctStatCd": "0003",
+            "exctStatNm": "개찰완료"
+          },
+          {
+            "onbidPbancNo": 896422,
+            "pbctNo": 10064732,
+            "pbancMngNo": "202607-22727-00",
+            "pbctNsq": "034",
+            "pbctsn": null,
+            "pbancKindCd": "0001",
+            "pbancKindNm": "일반공고",
+            "prptDivCd": "0007",
+            "prptDivNm": "압류재산",
+            "dspsMthodCd": "0001",
+            "dspsMthodNm": "매각",
+            "onbidPbancNm": "(서울동부지역본부) 2026년 제018차 압류재산 공매공고",
+            "orgNm": "한국자산관리공사",
+            "rspbSbrNm": "서울동부지역본부",
+            "pbancYmd": "20260715",
+            "cltrOpbdDt": "202610011100",
+            "exctStatCd": "0003",
+            "exctStatNm": "개찰완료"
+          }
+        ]
+      },
+      "numOfRows": 5,
+      "pageNo": 1,
+      "totalCount": 859
+    }
+  }
+}
